@@ -43,7 +43,6 @@ Initiates repository analysis process. Accepts repository URL and optional authe
 
 Input Parameters:
 - repositoryUrl (required): Valid Git repository URL (public repositories only)
-- authToken (optional): Authentication token for repositories requiring access (not supported in MVP)
 
 Response:
 - jobId: Unique identifier for tracking the analysis job
