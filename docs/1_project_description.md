@@ -13,7 +13,7 @@ The application provides AI-generated documentation for both humans and AI agent
 - IDE Integration
 - MCP Server
 - Large repositories (>50k lines of code)
-- private repositories
+- private repositories (due to required additional authentication tokens)
 
 ### Success Criteria
 - The user receives documentation that shortens onboarding time from days/weeks to hours

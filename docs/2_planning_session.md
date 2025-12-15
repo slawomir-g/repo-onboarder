@@ -25,7 +25,7 @@
 ### Main Functional Requirements
 1. **REST API Endpoint (`POST /analyze`):** Accepts repository URL and optional auth token. Starts a background process and returns a task ID.
 2. **Cloning and Analysis Mechanism:**
-    *   Cloning repository (public/private support).
+    *   Cloning repository (public support).
     *   File structure analysis and technology identification (Java/JS).
     *   Git history analysis (last 12 months) to determine hotspots.
     *   File filtering based on built-in list and user configuration.
@@ -40,7 +40,7 @@
 3. **Local Run:** User runs the JAR file, provides the Gemini key in `application.properties`, and then sends a curl request to localhost to receive JSON with documentation.
 
 ### Success Criteria and Metrics
-1. **Technical Correctness:** System correctly clones a private repository, processes it, and returns valid JSON without 500 errors (assuming Google API availability).
+1. **Technical Correctness:** System correctly clones a public repository, processes it, and returns valid JSON without 500 errors (assuming Google API availability).
 2. **Documentation Quality (Subjective):** Generated documentation contains correct file mapping and a sensible architecture description for supported technology stacks. Verification is done via user feedback (no automated metrics in MVP).
 
 ## Unresolved Issues
