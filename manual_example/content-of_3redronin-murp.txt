@@ -1,0 +1,2602 @@
+Directory structure:
+└── 3redronin-murp/
+    ├── README.md
+    ├── LICENSE
+    ├── pom.xml
+    ├── .editorconfig
+    ├── .travis.yml
+    ├── src/
+    │   ├── main/
+    │   │   └── java/
+    │   │       └── io/
+    │   │           └── muserver/
+    │   │               └── murp/
+    │   │                   ├── HttpClientUtils.java
+    │   │                   ├── Murp.java
+    │   │                   ├── package-info.java
+    │   │                   ├── ProxyCompleteListener.java
+    │   │                   ├── ProxyListener.java
+    │   │                   ├── RequestInterceptor.java
+    │   │                   ├── ResponseInterceptor.java
+    │   │                   ├── ReverseProxy.java
+    │   │                   ├── ReverseProxyBuilder.java
+    │   │                   ├── Slf4jResponseLogger.java
+    │   │                   └── UriMapper.java
+    │   └── test/
+    │       └── java/
+    │           ├── Example.java
+    │           ├── ManualTest.java
+    │           ├── io/
+    │           │   └── muserver/
+    │           │       └── murp/
+    │           │           ├── MockMuRequest.java
+    │           │           ├── MurpTest.java
+    │           │           ├── TimeoutsTest.java
+    │           │           └── UriMapperTest.java
+    │           └── scaffolding/
+    │               ├── ClientUtils.java
+    │               ├── MuAssert.java
+    │               ├── RawClient.java
+    │               └── StringUtils.java
+    └── .github/
+        └── workflows/
+            ├── ci.yaml
+            └── release.yaml
+
+================================================
+FILE: README.md
+================================================
+[![Build Status](https://travis-ci.org/3redronin/murp.svg?branch=master)](https://travis-ci.org/3redronin/murp)
+ ![GitHub](https://img.shields.io/github/license/3redronin/murp)
+# murp
+
+A reverse proxy handler for [Mu Server](https://muserver.io).
+
+## Quick Start
+
+Add the latest dependencies...
+
+````xml
+<dependency>
+    <groupId>io.muserver</groupId>
+    <artifactId>mu-server</artifactId>
+    <version>RELEASE</version>
+</dependency>
+<dependency>
+    <groupId>io.muserver</groupId>
+    <artifactId>murp</artifactId>
+    <version>RELEASE</version>
+</dependency>
+````
+
+...and start a server. In this example, an HTTPS server listening on port 8443
+proxies all requests to `http://target.example.org:8080`
+
+````java
+import io.muserver.*;
+import io.muserver.murp.*;
+
+public class QuickStart {
+    public static void main(String[] args) {
+        
+        URI target = URI.create("http://target.example.org:8080");
+        
+        MuServer server = MuServerBuilder.muServer()
+            .withHttpsPort(8443)
+            .addHandler(ReverseProxyBuilder.reverseProxy()
+                .withUriMapper(UriMapper.toDomain(target))
+            )
+            .start();
+        
+        System.out.println("Started reverse proxy at " + server.uri());
+    }
+}
+````
+
+For more documentation and a larger example, see <https://muserver.io/murp>
+
+
+
+================================================
+FILE: LICENSE
+================================================
+MIT License
+
+Copyright (c) 2019 3redronin
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
+
+================================================
+FILE: pom.xml
+================================================
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>io.muserver</groupId>
+    <artifactId>murp</artifactId>
+    <version>1.1-SNAPSHOT</version>
+    <url>https://github.com/3redronin/murp</url>
+    <name>murp</name>
+    <description>A reverse proxy handler for Mu Server</description>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <inceptionYear>2019</inceptionYear>
+
+    <issueManagement>
+        <system>GitHub</system>
+        <url>https://github.com/3redronin/murp/issues</url>
+    </issueManagement>
+
+    <licenses>
+        <license>
+            <name>MIT License</name>
+            <url>http://www.opensource.org/licenses/mit-license.php</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <name>Daniel Flower</name>
+            <organizationUrl>https://github.com/danielflower</organizationUrl>
+        </developer>
+    </developers>
+
+    <ciManagement>
+        <system>GitHub Actions</system>
+        <url>https://github.com/3redronin/murp/actions/workflows/ci.yaml</url>
+    </ciManagement>
+
+    <scm>
+        <url>https://github.com/3redronin/murp</url>
+        <connection>scm:git:https://github.com/3redronin/murp.git</connection>
+    </scm>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>2.0.17</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>2.0.17</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.muserver</groupId>
+            <artifactId>mu-server</artifactId>
+            <version>2.1.12</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.hamcrest</groupId>
+            <artifactId>hamcrest-core</artifactId>
+            <version>3.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.hamcrest</groupId>
+            <artifactId>hamcrest-library</artifactId>
+            <version>3.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.13.2</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.hamcrest</groupId>
+            <artifactId>hamcrest</artifactId>
+            <version>3.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>okhttp-jvm</artifactId>
+            <version>5.1.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>okhttp-sse</artifactId>
+            <version>5.1.0</version>
+            <scope>test</scope>
+        </dependency>
+
+    </dependencies>
+
+
+    <build>
+        <defaultGoal>clean install</defaultGoal>
+        <plugins>
+
+            <plugin>
+                <groupId>com.github.danielflower.mavenplugins</groupId>
+                <artifactId>multi-module-maven-release-plugin</artifactId>
+                <version>3.6.4</version>
+                <configuration>
+                    <releaseProfiles>
+                        <releaseProfile>release</releaseProfile>
+                    </releaseProfiles>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <source>11</source>
+                    <target>11</target>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.5.2</version>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>3.4.0</version>
+                <executions>
+                    <execution>
+                        <id>analyze</id>
+                        <goals>
+                            <goal>analyze-only</goal>
+                        </goals>
+                        <configuration>
+                            <failOnWarning>true</failOnWarning>
+                            <ignoreNonCompile>true</ignoreNonCompile>
+                            <outputXML>true</outputXML>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.11.2</version>
+                <configuration>
+                    <source>11</source>
+                    <detectJavaApiLink>false</detectJavaApiLink>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                        <configuration>
+                            <failOnWarnings>true</failOnWarnings>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.3.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar-no-fork</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+        </plugins>
+    </build>
+
+    <profiles>
+        <profile>
+            <id>release</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <version>0.8.0</version>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <publishingServerId>central</publishingServerId>
+                            <autoPublish>true</autoPublish>
+                            <waitUntil>published</waitUntil>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>3.2.4</version>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                                <configuration>
+                                    <signer>bc</signer>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
+</project>
+
+
+
+================================================
+FILE: .editorconfig
+================================================
+# EditorConfig is awesome: http://EditorConfig.org
+
+root = true
+
+[*]
+end_of_line = lf
+
+[*.{java,xml}]
+charset = utf-8
+indent_style = space
+indent_size = 4
+
+
+
+================================================
+FILE: .travis.yml
+================================================
+language: java
+dist: trusty
+
+jdk:
+  - oraclejdk8
+  - openjdk11
+  - openjdk12
+  - openjdk14
+
+cache:
+  directories:
+    - .autoconf
+    - $HOME/.m2
+before_install:
+   - "export M2_HOME=/usr/local/maven"
+
+
+================================================
+FILE: src/main/java/io/muserver/murp/HttpClientUtils.java
+================================================
+package io.muserver.murp;
+
+import javax.net.ssl.*;
+import java.net.Socket;
+import java.net.URLEncoder;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.nio.charset.StandardCharsets;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+
+class HttpClientUtils {
+
+    static final List<String> DISALLOWED_REQUEST_HEADERS;
+    static {
+
+        // Older JDK clients blocked headers they shouldn't. From JDK 12 these can be turned off
+        // with a system property. See https://bugs.openjdk.java.net/browse/JDK-8213189
+        // For JDK 11, any of "date", "from", "host", "origin", "referer", "via", "warning" will not be proxied.
+        // Upgrade to JDK 12 or newer if any of these are important.
+        setPropertyIfUnset("jdk.httpclient.allowRestrictedHeaders", "host,date,via,warning,from,origin,referer,connection");
+
+        // This detects these for the current JDK and will not forward any banned ones.
+        HttpRequest.Builder builder = HttpRequest.newBuilder();
+        Set<String> headersThatJDKMayReject = Set.of("date", "expect", "from", "host", "origin", "referer", "via", "warning");
+        List<String> disallowed = new ArrayList<>();
+        for (String header : headersThatJDKMayReject) {
+            try {
+                builder.header(header, "dummy");
+            } catch (IllegalArgumentException e) {
+                disallowed.add(header);
+            }
+        }
+        disallowed.add("content-length"); // as the body publisher adds it
+        DISALLOWED_REQUEST_HEADERS = Collections.unmodifiableList(disallowed);
+    }
+
+    static String urlEncode(String value) {
+        return URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20");
+    }
+
+    static HttpClient.Builder createHttpClientBuilder(boolean trustAll) {
+
+        HttpClient.Builder builder = HttpClient.newBuilder();
+        if (trustAll) {
+            trustAll(builder);
+        }
+        return builder;
+    }
+
+    private static void setPropertyIfUnset(String key, String value) {
+        String custom = System.getProperty(key, null);
+        if (custom == null) {
+            System.setProperty(key, value);
+        }
+    }
+
+    private static void trustAll(HttpClient.Builder builder) {
+        try {
+            final TrustManager[] trustAllCerts = new TrustManager[]{
+                new X509ExtendedTrustManager()
+                {
+                    public X509Certificate[] getAcceptedIssuers()
+                    {
+                        return null;
+                    }
+
+                    public void checkClientTrusted(
+                        final X509Certificate[] a_certificates,
+                        final String a_auth_type)
+                    {
+                    }
+
+                    public void checkServerTrusted(
+                        final X509Certificate[] a_certificates,
+                        final String a_auth_type)
+                    {
+                    }
+                    public void checkClientTrusted(
+                        final X509Certificate[] a_certificates,
+                        final String a_auth_type,
+                        final Socket a_socket)
+                    {
+                    }
+                    public void checkServerTrusted(
+                        final X509Certificate[] a_certificates,
+                        final String a_auth_type,
+                        final Socket a_socket)
+                    {
+                    }
+                    public void checkClientTrusted(
+                        final X509Certificate[] a_certificates,
+                        final String a_auth_type,
+                        final SSLEngine a_engine)
+                    {
+                    }
+                    public void checkServerTrusted(
+                        final X509Certificate[] a_certificates,
+                        final String a_auth_type,
+                        final SSLEngine a_engine)
+                    {
+                    }
+                }            };
+            SSLContext sslContext = SSLContext.getInstance("SSL");
+            sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
+            builder.sslContext(sslContext);
+
+        } catch (NoSuchAlgorithmException | KeyManagementException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+}
+
+
+
+================================================
+FILE: src/main/java/io/muserver/murp/Murp.java
+================================================
+package io.muserver.murp;
+
+import io.muserver.MuServer;
+
+import java.io.InputStream;
+import java.net.URI;
+import java.util.Properties;
+
+/**
+ * Some utilities for the reverse proxy. If you want to create a reverse proxy, use {@link io.muserver.murp.ReverseProxyBuilder#reverseProxy()}
+ *
+ * @author lujunjie
+ * @version $Id: $Id
+ */
+public class Murp {
+
+    private Murp() {}
+
+    private static final String version;
+    static {
+        String v;
+        try {
+            Properties props = new Properties();
+            InputStream in = MuServer.class.getResourceAsStream("/META-INF/maven/io.muserver/murp/pom.properties");
+            if (in == null) {
+                v = "0.x";
+            } else {
+                try {
+                    props.load(in);
+                } finally {
+                    in.close();
+                }
+                v = props.getProperty("version");
+            }
+        } catch (Exception ex) {
+            v = "0.x";
+        }
+        version = v;
+    }
+
+    /**
+     * Returns the current version of Murp, or 0.x if unknown
+     *
+     * @return murp version
+     */
+    public static String artifactVersion() {
+        return version;
+    }
+
+    /**
+     * <p>Given a gets the raw path and (if present) querystring portion of a URI.</p>
+     * <p>Note: paths and query strings are not URL decoded.</p>
+     *
+     * @param uri The URI to get the info from
+     * @return A string such as <code>/path?query=something</code>
+     */
+    public static String pathAndQuery(URI uri) {
+        String pathAndQuery = uri.getRawPath();
+        String rawQuery = uri.getRawQuery();
+        if (rawQuery != null) {
+            pathAndQuery += "?" + rawQuery;
+        }
+        return pathAndQuery;
+    }
+}
+
+
+
+================================================
+FILE: src/main/java/io/muserver/murp/package-info.java
+================================================
+/**
+ * <p>A reverse proxy handler for Mu Server.</p>
+ * <p>To create a reverse proxy, create a Mu Server and use {@link io.muserver.murp.ReverseProxyBuilder#reverseProxy()}
+ * to create a handler.</p>
+ * <p>For more documentation, see <a href="https://muserver.io/murp">https://muserver.io/murp</a></p>
+ * @see io.muserver.murp.ReverseProxyBuilder
+ */
+package io.muserver.murp;
+
+
+================================================
+FILE: src/main/java/io/muserver/murp/ProxyCompleteListener.java
+================================================
+package io.muserver.murp;
+
+import io.muserver.MuRequest;
+import io.muserver.MuResponse;
+
+import java.net.URI;
+
+/**
+ * A listener for when proxied requests complete
+ *
+ * @author Daniel Flower
+ * @version 1.0
+ */
+public interface ProxyCompleteListener {
+
+    /**
+     * Called after the response has been sent to the client, whether successful or not
+     *
+     * @param clientRequest The original request from the client
+     * @param clientResponse The response sent to the client
+     * @param targetUri The URI that this request was proxied to
+     * @param durationMillis The time in millis from when the reverse proxy received the request until the client request was sent.
+     * @throws java.lang.Exception Any exceptions will be logged and ignored
+     */
+    void onComplete(MuRequest clientRequest, MuResponse clientResponse, URI targetUri, long durationMillis) throws Exception;
+
+}
+
+
+
+================================================
+FILE: src/main/java/io/muserver/murp/ProxyListener.java
+================================================
+package io.muserver.murp;
+
+import io.muserver.MuRequest;
+import io.muserver.MuResponse;
+
+import java.net.http.HttpRequest;
+import java.nio.ByteBuffer;
+
+/**
+ * A listener for observing the life cycle phases of a request, it might be useful for debug and metric
+ */
+public interface ProxyListener {
+
+    /**
+     * Called before a chunk of request body data is sent to the target.
+     * This will be called many times if the body has been fragmented.
+     * <p>
+     * For performance consideration without extra copy, the ByteBuffer chunk is the same copy as the one sending
+     * to target. Async operation on the ByteBuffer chunks in this callback will have great potential to mix up the bytes.
+     *
+     * @param clientRequest  Client Request
+     * @param clientResponse Client Response
+     * @param chunk          Request body data which is going to be sent to target.
+     */
+    default void onBeforeRequestBodyChunkSentToTarget(MuRequest clientRequest, MuResponse clientResponse, ByteBuffer chunk) {
+    }
+
+    /**
+     * Called after a chunk of request body data is sent to the target.
+     * This will be called many times if the body has been fragmented.
+     * <p>
+     * For performance consideration without extra copy, the ByteBuffer chunk is the same copy as the one sending
+     * to target. Async operation on the ByteBuffer chunks in this callback will have great potential to mix up the bytes.
+     *
+     * @param clientRequest  Client Request
+     * @param clientResponse Client Response
+     * @param chunk          Request body data which already been sent to target successfully.
+     */
+    default void onRequestBodyChunkSentToTarget(MuRequest clientRequest, MuResponse clientResponse, ByteBuffer chunk) {
+    }
+
+    /**
+     * Called when the full request body has been sent to the target
+     *
+     * @param clientRequest  Client Request
+     * @param clientResponse Client Response
+     * @param totalBodyBytes the total sent bytes count
+     */
+    default void onRequestBodyFullSentToTarget(MuRequest clientRequest, MuResponse clientResponse, long totalBodyBytes) {
+    }
+
+    /**
+     * Called when a chunk of response body data is received from the target
+     * This will be called many times if the body has been fragmented
+     *
+     * @param clientRequest  Client Request
+     * @param clientResponse Client Response
+     * @param chunk          Response body data received from the target.
+     */
+    default void onResponseBodyChunkReceivedFromTarget(MuRequest clientRequest, MuResponse clientResponse, ByteBuffer chunk) {
+    }
+
+    /**
+     * Called when a chunk of response body data is received from the target and sent to client
+     * This will be called many times if the body has been fragmented
+     *
+     * @param clientRequest  Client Request
+     * @param clientResponse Client Response
+     * @param chunk          Response body data received from the target.
+     */
+    default void onResponseBodyChunkSentToClient(MuRequest clientRequest, MuResponse clientResponse, ByteBuffer chunk) {
+    }
+
+    /**
+     * Called when a chunk of response body data is received from the target and fully sent to client
+     *
+     * @param clientRequest  Client Request
+     * @param clientResponse Client Response
+     * @param totalBodyBytes the total sent bytes count
+     */
+    default void onResponseBodyChunkFullSentToClient(MuRequest clientRequest, MuResponse clientResponse, long totalBodyBytes) {
+    }
+
+    /**
+     * Called when error detected from client side
+     * This API is experimental and might be changed in the future
+     *
+     * @param clientRequest Client Request
+     * @param clientResponse Client Response
+     * @param targetRequest target request
+     * @param cause the error cause
+     */
+    default void onErrorDetectedFromClient(MuRequest clientRequest, MuResponse clientResponse, HttpRequest targetRequest, Throwable cause) {
+    }
+
+    /**
+     * Called when error detected from target side
+     * This API is experimental and might be changed in the future
+     *
+     * @param clientRequest Client Request
+     * @param clientResponse Client Response
+     * @param targetRequest target request
+     * @param cause the error cause
+     */
+    default void onErrorDetectedFromTarget(MuRequest clientRequest, MuResponse clientResponse, HttpRequest targetRequest, Throwable cause) {
+    }
+
+}
+
+
+
+================================================
+FILE: src/main/java/io/muserver/murp/RequestInterceptor.java
+================================================
+package io.muserver.murp;
+
+import io.muserver.MuRequest;
+
+import java.net.http.HttpRequest;
+
+/**
+ * A hook for intercepting requests before they are sent to the target server.
+ *
+ * @author Daniel Flower
+ * @version 1.0
+ */
+public interface RequestInterceptor {
+
+    /**
+     * This function is called after Murp prepared the request object to the target server, but before it is sent,
+     * allowing you to modify request headers.
+     * <p>Note that the request body is not available for inspection and cannot be changed as the raw bytes
+     * will be streamed asynchronously to the target.</p>
+     *
+     * @param clientRequest The original request from the client. Note that changing anything here has no effect,
+     *                      however if you want to pass data from here to a {@link io.muserver.murp.ResponseInterceptor} you can
+     *                      use {@link io.muserver.MuRequest#attribute(String, Object)} to store state.
+     * @param targetRequestBuilder the request builder for intercepting the request which sending to target server.
+     * @throws java.lang.Exception Any unhandled exceptions will cause 500 errors
+     */
+    void intercept(MuRequest clientRequest, HttpRequest.Builder targetRequestBuilder) throws Exception;
+
+}
+
+
+
+================================================
+FILE: src/main/java/io/muserver/murp/ResponseInterceptor.java
+================================================
+package io.muserver.murp;
+
+import io.muserver.MuRequest;
+import io.muserver.MuResponse;
+
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+
+/**
+ * A hook for intercepting responses before they are sent back to the client.
+ *
+ * @author Daniel Flower
+ * @version 1.0
+ */
+public interface ResponseInterceptor {
+
+    /**
+     * This function is called after the response from the target is received, and the response headers for the
+     * client are called. One use case is to add or remove headers or even response codes sent to the client.
+     * <p>Note that the response body is not available for inspection and cannot be changed as the raw bytes
+     * will be streamed asynchronously to the client.</p>
+     *
+     * @param clientRequest  The original request from the client.
+     * @param targetRequest  The request that was sent to the target.
+     * @param targetResponseInfo The responseInfo received from the target server, headers info is available.
+     * @param clientResponse The as-yet unsent response to the client. You can modify the response code, content
+     *                       type and other headers, however you cannot alter the response body.
+     * @throws java.lang.Exception Any unhandled exceptions will be logged but will not stop the response being sent.
+     */
+    void intercept(MuRequest clientRequest, HttpRequest targetRequest, HttpResponse.ResponseInfo targetResponseInfo, MuResponse clientResponse) throws Exception;
+
+}
+
+
+
+================================================
+FILE: src/main/java/io/muserver/murp/ReverseProxy.java
+================================================
+package io.muserver.murp;
+
+import io.muserver.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.net.InetAddress;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.ByteBuffer;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
+
+import static java.util.Arrays.asList;
+
+/**
+ * The core implementation for ReverseProxy
+ *
+ * @author Daniel Flower
+ * @version 1.0
+ */
+public class ReverseProxy implements MuHandler {
+    private static final Logger log = LoggerFactory.getLogger(ReverseProxy.class);
+
+    /**
+     * An unmodifiable set of the Hop By Hop headers. All are in lowercase.
+     */
+    public static final Set<String> HOP_BY_HOP_HEADERS = Set.of(
+        "keep-alive", "transfer-encoding", "te", "connection", "trailer", "upgrade",
+        "proxy-authorization", "proxy-authenticate");
+
+    private static final Set<String> HTTP_2_PSEUDO_HEADERS = Set.of(
+        ":method", ":path", ":authority", ":scheme", ":status"
+    );
+
+    private static final Set<String> REPRESSED;
+
+    static {
+        REPRESSED = new HashSet<>(HOP_BY_HOP_HEADERS);
+        REPRESSED.addAll(new HashSet<>(asList(
+            "forwarded", "x-forwarded-by", "x-forwarded-for", "x-forwarded-host", "x-forwarded-proto",
+            "x-forwarded-port", "x-forwarded-server", "via", "expect"
+        )));
+
+        String ip;
+        try {
+            ip = InetAddress.getLocalHost().getHostAddress();
+        } catch (Exception e) {
+            ip = "unknown";
+            log.info("Could not fine local address so using {}", ip);
+        }
+        ipAddress = ip;
+    }
+
+
+    private final AtomicLong counter = new AtomicLong();
+    private final HttpClient httpClient;
+    private final UriMapper uriMapper;
+    private final long totalTimeoutInMillis;
+    private final List<ProxyCompleteListener> proxyCompleteListeners;
+
+    private final Set<String> doNotProxyToTarget = new HashSet<>();
+
+    private static final String ipAddress;
+
+    private final String viaName;
+    private final boolean discardClientForwardedHeaders;
+    private final boolean sendLegacyForwardedHeaders;
+    private final RequestInterceptor requestInterceptor;
+    private final ResponseInterceptor responseInterceptor;
+    private final ProxyListener proxyListener;
+
+    ReverseProxy(HttpClient httpClient, UriMapper uriMapper, long totalTimeoutInMillis, List<ProxyCompleteListener> proxyCompleteListeners,
+                 String viaName, boolean discardClientForwardedHeaders, boolean sendLegacyForwardedHeaders,
+                 Set<String> additionalDoNotProxyHeaders, RequestInterceptor requestInterceptor, ResponseInterceptor responseInterceptor, ProxyListener proxyListener) {
+        this.httpClient = httpClient;
+        this.uriMapper = uriMapper;
+        this.totalTimeoutInMillis = totalTimeoutInMillis;
+        this.proxyCompleteListeners = proxyCompleteListeners;
+        this.viaName = viaName;
+        this.discardClientForwardedHeaders = discardClientForwardedHeaders;
+        this.sendLegacyForwardedHeaders = sendLegacyForwardedHeaders;
+        this.requestInterceptor = requestInterceptor;
+        this.responseInterceptor = responseInterceptor;
+        this.proxyListener = proxyListener;
+        this.doNotProxyToTarget.addAll(REPRESSED);
+        additionalDoNotProxyHeaders.forEach(h -> this.doNotProxyToTarget.add(h.toLowerCase()));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean handle(MuRequest clientRequest, MuResponse clientResponse) throws Exception {
+        URI target = uriMapper.mapFrom(clientRequest);
+        if (target == null) {
+            return false;
+        }
+
+        final long start = System.currentTimeMillis();
+        final AsyncHandle asyncHandle = clientRequest.handleAsync();
+        final String clientRequestProtocol = clientRequest.protocol();
+
+        clientResponse.headers().remove(HeaderNames.DATE); // so that the target's date can be used
+
+        final long id = counter.incrementAndGet();
+        if (log.isDebugEnabled()) {
+            log.debug("[{}] Proxying from {} to {}", id, clientRequest.uri(), target);
+        }
+
+        AtomicReference<CompletableFuture<HttpResponse<Void>>> targetResponseFutureRef = new AtomicReference<>();
+        AtomicReference<HttpRequest> targetRequestRef = new AtomicReference<>();
+        AtomicInteger responseBodyTotalByteCount = new AtomicInteger(0);
+
+
+        asyncHandle.addResponseCompleteHandler((info) -> {
+
+            long duration = System.currentTimeMillis() - start;
+
+            if (proxyListener != null) {
+                if (info.completedSuccessfully()) {
+                    try {
+                        proxyListener.onResponseBodyChunkFullSentToClient(clientRequest, clientResponse, responseBodyTotalByteCount.get());
+                    } catch (Exception e) {
+                        log.warn("proxyListener.onResponseBodyChunkFullSentToClient failed", e);
+                    }
+                } else {
+                    try {
+                        proxyListener.onErrorDetectedFromClient(clientRequest, clientResponse, targetRequestRef.get(), new RuntimeException("client not completed successfully."));
+                    } catch (Exception e) {
+                        log.warn("proxyListener.onErrorDetectedFromClient failed", e);
+                    }
+                }
+            }
+
+            for (ProxyCompleteListener proxyCompleteListener : proxyCompleteListeners) {
+                try {
+                    proxyCompleteListener.onComplete(clientRequest, clientResponse, target, duration);
+                } catch (Exception e) {
+                    log.warn("proxyCompleteListener error", e);
+                }
+            }
+
+            CompletableFuture<HttpResponse<Void>> targetResponse = targetResponseFutureRef.get();
+            if (targetResponse != null && !targetResponse.isDone()) {
+                log.info("cancelling target request as client close detected. target_request={}, client_request={}", targetRequestRef.get(), clientRequest);
+                targetResponse.cancel(true);
+            }
+
+            targetRequestRef.set(null);
+            targetResponseFutureRef.set(null);
+        });
+
+
+        HttpRequest.BodyPublisher bodyPublisher;
+        boolean hasRequestBody = hasRequestBody(clientRequest);
+        if (hasRequestBody) {
+            bodyPublisher = new HttpRequest.BodyPublisher() {
+                @Override
+                public void subscribe(Flow.Subscriber<? super ByteBuffer> subscriber) {
+
+                    try {
+                        ConcurrentLinkedDeque<DoneCallback> doneCallbacks = new ConcurrentLinkedDeque<>();
+                        AtomicBoolean isFirst = new AtomicBoolean(true);
+
+                        subscriber.onSubscribe(new Flow.Subscription() {
+                            @Override
+                            public void request(long n) {
+
+                                long[] totalBytesCount = new long[]{0L};
+                                DoneCallback doneCallback = doneCallbacks.poll();
+                                if (doneCallback != null) {
+                                    try {
+                                        doneCallback.onComplete(null);
+                                    } catch (Exception e) {
+                                        log.warn("onComplete failed", e);
+                                        this.cancel();
+                                    }
+                                }
+
+                                if (isFirst.compareAndSet(true, false)) {
+
+                                    // start reading client body only after target subscription established
+                                    // otherwise calling `subscriber.onNext(byteBuffer)` will sometimes cause JDK http client
+                                    // throw NullPointerException and cancel the subscription
+                                    asyncHandle.setReadListener(new RequestBodyListener() {
+                                        @Override
+                                        public void onDataReceived(ByteBuffer byteBuffer, DoneCallback doneCallback) {
+
+                                            doneCallbacks.add(doneCallback);
+                                            ByteBuffer copy = cloneByteBuffer(byteBuffer);
+
+                                            int position = copy.position();
+                                            int remaining = copy.remaining();
+
+                                            if (proxyListener != null) {
+                                                try {
+                                                    proxyListener.onBeforeRequestBodyChunkSentToTarget(clientRequest, clientResponse, copy.position(position));
+                                                } catch (Exception e) {
+                                                    log.warn("proxyListener.onBeforeRequestBodyChunkSentToTarget failed", e);
+                                                }
+                                            }
+
+                                            subscriber.onNext(copy.position(position));
+                                            totalBytesCount[0] += remaining;
+
+                                            if (proxyListener != null) {
+                                                try {
+                                                    proxyListener.onRequestBodyChunkSentToTarget(clientRequest, clientResponse, copy.position(position));
+                                                } catch (Exception e) {
+                                                    log.warn("proxyListener.onBeforeRequestBodyChunkSentToTarget failed", e);
+                                                }
+                                            }
+                                        }
+
+                                        private ByteBuffer cloneByteBuffer(ByteBuffer byteBuffer) {
+                                            // bug fix : upload file random broken - (some of the bytes disordered)
+                                            // clone the byteBuffer to avoid it's being modified after passing into subscriber.onNext()
+                                            int capacity = byteBuffer.remaining();
+                                            ByteBuffer copy = byteBuffer.isDirect() ? ByteBuffer.allocateDirect(capacity) : ByteBuffer.allocate(capacity);
+                                            copy.put(byteBuffer);
+                                            copy.rewind();
+                                            return copy;
+                                        }
+
+                                        @Override
+                                        public void onComplete() {
+                                            subscriber.onComplete();
+
+                                            if (proxyListener != null) {
+                                                try {
+                                                    proxyListener.onRequestBodyFullSentToTarget(clientRequest, clientResponse, totalBytesCount[0]);
+                                                } catch (Exception e) {
+                                                    log.warn("proxyListener.onRequestBodyFullSentToTarget failed", e);
+                                                }
+                                            }
+                                        }
+
+                                        @Override
+                                        public void onError(Throwable throwable) {
+                                            // do nothing as asyncHandle response complete listener will trigger cancellation
+                                        }
+                                    });
+                                }
+                            }
+
+                            @Override
+                            public void cancel() {
+                                log.info("cancel request body pumping");
+                            }
+                        });
+
+
+                    } catch (Throwable throwable) {
+                        log.info("body subscribe error", throwable);
+                        throw throwable;
+                    }
+
+                }
+
+                @Override
+                public long contentLength() {
+                    String contentLength = clientRequest.headers().get(HeaderNames.CONTENT_LENGTH);
+                    if (contentLength != null) {
+                        return Long.parseLong(contentLength);
+                    } else {
+                        return -1;
+                    }
+                }
+            };
+        } else {
+            bodyPublisher = HttpRequest.BodyPublishers.noBody();
+        }
+
+        HttpRequest.Builder targetReq = HttpRequest.newBuilder()
+            .uri(target)
+            .method(clientRequest.method().toString(), bodyPublisher);
+
+        String viaValue = clientRequestProtocol + " " + viaName;
+        setTargetRequestHeaders(clientRequest, targetReq, discardClientForwardedHeaders, sendLegacyForwardedHeaders, viaValue, doNotProxyToTarget);
+
+
+        HttpResponse.BodyHandler<Void> bh = new HttpResponse.BodyHandler<>() {
+            @Override
+            public HttpResponse.BodySubscriber<Void> apply(HttpResponse.ResponseInfo responseInfo) {
+
+                clientResponse.status(responseInfo.statusCode());
+
+                // set response headers
+                for (Map.Entry<String, List<String>> headerEntry : responseInfo.headers().map().entrySet()) {
+                    for (String value : headerEntry.getValue()) {
+                        String header = headerEntry.getKey();
+                        String lowerName = header.toLowerCase();
+                        if (HOP_BY_HOP_HEADERS.contains(lowerName)) {
+                            continue;
+                        }
+                        if (!"HTTP/2.0".equals(clientRequestProtocol) && HTTP_2_PSEUDO_HEADERS.contains(lowerName)) {
+                            continue;
+                        }
+                        clientResponse.headers().add(header, value);
+                    }
+                }
+
+                String newVia = getNewViaValue(viaValue, clientResponse.headers().getAll(HeaderNames.VIA));
+                clientResponse.headers().set(HeaderNames.VIA, newVia);
+
+                if (responseInterceptor != null) {
+                    try {
+                        responseInterceptor.intercept(clientRequest, targetRequestRef.get(), responseInfo, clientResponse);
+                    } catch (Exception e) {
+                        log.info("responseInterceptor error", e);
+                    }
+                }
+
+                // response body
+                return HttpResponse.BodySubscribers.fromSubscriber(new Flow.Subscriber<>() {
+
+                    private Flow.Subscription subscription;
+
+                    @Override
+                    public void onSubscribe(Flow.Subscription subscription) {
+                        this.subscription = subscription;
+                        subscription.request(1);
+                    }
+
+                    @Override
+                    public void onNext(List<ByteBuffer> buffers) {
+
+                        if (clientResponse.responseState().endState()) {
+                            subscription.cancel();
+                            onError(new RuntimeException("Error sending response data, client close early."));
+                            return;
+                        }
+
+                        if (buffers.isEmpty()) {
+                            log.warn("onNext called with empty buffers");
+                            subscription.request(1);
+                            return;
+                        }
+
+                        final int[] counter = new int[]{0};
+                        final int total = buffers.size();
+
+                        for (ByteBuffer buffer : buffers) {
+
+                            int position = buffer.position();
+                            int remaining = buffer.remaining();
+
+                            if (clientResponse.responseState().endState()) {
+                                subscription.cancel();
+                                onError(new RuntimeException("Error sending response data, client close early."));
+                                return;
+                            }
+
+                            if (proxyListener != null) {
+                                try {
+                                    proxyListener.onResponseBodyChunkReceivedFromTarget(clientRequest, clientResponse, buffer.position(position));
+                                } catch (Exception e) {
+                                    log.warn("proxyListener.onResponseBodyChunkReceivedFromTarget failed", e);
+                                }
+                            }
+
+                            asyncHandle.write(buffer.position(position), throwable -> {
+
+                                if (throwable != null) {
+                                    subscription.cancel();
+                                    onError(throwable);
+                                    return;
+                                }
+
+                                responseBodyTotalByteCount.addAndGet(remaining);
+
+                                if (proxyListener != null) {
+                                    try {
+                                        proxyListener.onResponseBodyChunkSentToClient(clientRequest, clientResponse, buffer.position(position));
+                                    } catch (Exception e) {
+                                        log.warn("proxyListener.onResponseBodyChunkSentToClient failed", e);
+                                    }
+                                }
+
+                                if (++counter[0] >= total) {
+                                    subscription.request(1);
+                                }
+                            });
+                        }
+                    }
+
+                    @Override
+                    public void onError(Throwable throwable) {
+                        // do nothing, trigger client request close on the httpClient.sendAsync() complete callback.
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        // do nothing, trigger client request close on the httpClient.sendAsync() complete callback.
+                    }
+                });
+            }
+        };
+
+        if (requestInterceptor != null) {
+            try {
+                requestInterceptor.intercept(clientRequest, targetReq);
+            } catch (Throwable throwable) {
+                log.info("requestInterceptor error", throwable);
+                clientResponse.status(500);
+                asyncHandle.complete();
+                return true;
+            }
+        }
+
+        HttpRequest targetRequest = targetReq.build();
+        targetRequestRef.set(targetRequest);
+
+        targetResponseFutureRef.set(httpClient.sendAsync(targetRequest, bh));
+
+        targetResponseFutureRef.get()
+            .orTimeout(totalTimeoutInMillis, TimeUnit.MILLISECONDS)
+            .whenComplete((httpResponse, throwable) -> {
+
+                if (clientResponse.responseState().endState()) {
+                    return;
+                }
+
+                if (throwable == null) {
+                    asyncHandle.complete();
+                    return;
+                }
+
+                log.info("closing client request as target server error detected. " +
+                    "client_request=[{}], target_request=[{}], error={}", clientRequest, targetRequestRef.get(), throwable.getMessage());
+
+                if (proxyListener != null) {
+                    try {
+                        proxyListener.onErrorDetectedFromTarget(clientRequest, clientResponse, targetRequestRef.get(), throwable);
+                    } catch (Exception error) {
+                        log.warn("proxyListener.onErrorDetectedFromTarget failed", error);
+                    }
+                }
+
+                if (clientResponse.hasStartedSendingData()) {
+                    asyncHandle.complete(throwable);
+                    return;
+                }
+
+                final int status = (throwable instanceof TimeoutException) ? 504 : 500;
+                final String body = (throwable instanceof TimeoutException) ? "504 Gateway Timeout" : "500 Internal Server Error";
+                clientResponse.status(status);
+                asyncHandle.write(Mutils.toByteBuffer(body));
+                asyncHandle.complete();
+
+            });
+
+        return true;
+    }
+
+    private static boolean hasRequestBody(MuRequest request) {
+        for (Map.Entry<String, String> header : request.headers()) {
+            String headerName = header.getKey().toLowerCase();
+            if (headerName.equals("content-length") || headerName.equals("transfer-encoding")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean setTargetRequestHeaders(MuRequest clientRequest, HttpRequest.Builder targetRequest, boolean discardClientForwardedHeaders, boolean sendLegacyForwardedHeaders, String viaValue, Set<String> excludedHeaders) {
+        Headers reqHeaders = clientRequest.headers();
+        List<String> customHopByHop = getCustomHopByHopHeaders(reqHeaders.get(HeaderNames.CONNECTION));
+
+        boolean hasContentLengthOrTransferEncoding = false;
+        for (Map.Entry<String, String> clientHeader : reqHeaders) {
+            String key = clientHeader.getKey();
+            String lowKey = key.toLowerCase();
+            hasContentLengthOrTransferEncoding |= lowKey.equals("content-length") || lowKey.equals("transfer-encoding");
+            if (excludedHeaders.contains(lowKey) || customHopByHop.contains(lowKey) || HttpClientUtils.DISALLOWED_REQUEST_HEADERS.contains(lowKey)) {
+                continue;
+            }
+            targetRequest.header(key, clientHeader.getValue());
+        }
+
+        String newViaValue = getNewViaValue(viaValue, clientRequest.headers().getAll(HeaderNames.VIA));
+        targetRequest.header(HeaderNames.VIA.toString(), newViaValue);
+
+        setForwardedHeaders(clientRequest, targetRequest, discardClientForwardedHeaders, sendLegacyForwardedHeaders);
+
+        return hasContentLengthOrTransferEncoding;
+    }
+
+    private static String getNewViaValue(String viaValue, List<String> previousViasList) {
+        String previousVias = String.join(", ", previousViasList);
+        if (!previousVias.isEmpty()) previousVias += ", ";
+        return previousVias + viaValue;
+    }
+
+    /**
+     * Sets Forwarded and optionally X-Forwarded-* headers to the target request, based on the client request
+     *
+     * @param clientRequest                 the received client request
+     * @param targetRequestBuilder          the target request builder to write the headers to
+     * @param discardClientForwardedHeaders if <code>true</code> then existing Forwarded headers on the client request will be discarded (normally false, unless you do not trust the upstream system)
+     * @param sendLegacyForwardedHeaders    if <code>true</code> then X-Forwarded-Proto/Host/For headers will also be added
+     */
+    public static void setForwardedHeaders(MuRequest clientRequest, HttpRequest.Builder targetRequestBuilder, boolean discardClientForwardedHeaders, boolean sendLegacyForwardedHeaders) {
+        Mutils.notNull("clientRequest", clientRequest);
+        Mutils.notNull("targetRequest", targetRequestBuilder);
+        List<ForwardedHeader> forwardHeaders;
+        if (discardClientForwardedHeaders) {
+            forwardHeaders = Collections.emptyList();
+        } else {
+            forwardHeaders = clientRequest.headers().forwarded();
+            for (ForwardedHeader existing : forwardHeaders) {
+                targetRequestBuilder.header(HeaderNames.FORWARDED.toString(), existing.toString());
+            }
+        }
+
+        ForwardedHeader newForwarded = createForwardedHeader(clientRequest);
+        targetRequestBuilder.header(HeaderNames.FORWARDED.toString(), newForwarded.toString());
+
+        if (sendLegacyForwardedHeaders) {
+            ForwardedHeader first = forwardHeaders.isEmpty() ? newForwarded : forwardHeaders.get(0);
+            setXForwardedHeaders(targetRequestBuilder, first);
+        }
+    }
+
+    /**
+     * Sets X-Forwarded-Proto, X-Forwarded-Host and X-Forwarded-For on the request given the forwarded header.
+     *
+     * @param targetRequest   The request to add the headers to
+     * @param forwardedHeader The forwarded header that has the original client information on it.
+     */
+    private static void setXForwardedHeaders(HttpRequest.Builder targetRequest, ForwardedHeader forwardedHeader) {
+        if (forwardedHeader == null) return;
+        String proto = forwardedHeader.proto();
+        if (proto != null) {
+            targetRequest.header(HeaderNames.X_FORWARDED_PROTO.toString(), proto);
+        }
+        String host = forwardedHeader.host();
+        if (host != null) {
+            targetRequest.header(HeaderNames.X_FORWARDED_HOST.toString(), host);
+        }
+        String forValue = forwardedHeader.forValue();
+        if (forValue != null) {
+            targetRequest.header(HeaderNames.X_FORWARDED_FOR.toString(), forValue);
+        }
+    }
+
+    /**
+     * Creates a Forwarded header for the based on the current request which can be used when
+     * proxying the request to a target.
+     *
+     * @param clientRequest The request from the client
+     * @return A ForwardedHeader that can be added to a new request
+     */
+    private static ForwardedHeader createForwardedHeader(MuRequest clientRequest) {
+        String forwardedFor = clientRequest.remoteAddress();
+        String proto = clientRequest.serverURI().getScheme();
+        String host = clientRequest.headers().get(HeaderNames.HOST);
+        return new ForwardedHeader(ipAddress, forwardedFor, host, proto, null);
+    }
+
+    private static List<String> getCustomHopByHopHeaders(String connectionHeaderValue) {
+        if (connectionHeaderValue == null) {
+            return Collections.emptyList();
+        }
+        List<String> customHopByHop = new ArrayList<>();
+        String[] split = connectionHeaderValue.split("\\s*,\\s*");
+        for (String s : split) {
+            customHopByHop.add(s.toLowerCase());
+        }
+        return customHopByHop;
+    }
+
+    @FunctionalInterface
+    private interface ThrowableRunnable {
+        void run() throws Throwable;
+    }
+
+    private static void logError(ThrowableRunnable runnable) {
+        try {
+            runnable.run();
+        } catch (Throwable e) {
+            log.error("logError", e);
+        }
+    }
+
+}
+
+
+
+================================================
+FILE: src/main/java/io/muserver/murp/ReverseProxyBuilder.java
+================================================
+package io.muserver.murp;
+
+import io.muserver.MuHandler;
+import io.muserver.MuHandlerBuilder;
+import io.muserver.Mutils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
+import static java.util.Collections.emptyList;
+
+/**
+ * A builder for creating a reverse proxy, which is a {@link io.muserver.MuHandler} that can be added to a Mu Server.
+ *
+ * @author Daniel Flower
+ * @version 1.0
+ */
+public class ReverseProxyBuilder implements MuHandlerBuilder<ReverseProxy> {
+
+    private static final Logger log = LoggerFactory.getLogger(ReverseProxyBuilder.class);
+
+    private String viaName = "private";
+    private HttpClient httpClient;
+    private UriMapper uriMapper;
+    private boolean sendLegacyForwardedHeaders;
+    private boolean discardClientForwardedHeaders;
+    private long totalTimeoutInMillis = TimeUnit.MINUTES.toMillis(5);
+    private List<ProxyCompleteListener> proxyCompleteListeners;
+    private final Set<String> doNotProxyHeaders = new HashSet<>();
+    private RequestInterceptor requestInterceptor;
+    private ResponseInterceptor responseInterceptor;
+    private ProxyListener proxyListener;
+
+    private ReverseProxyBuilder() {}
+
+    /**
+     * The name to add as the <code>Via</code> header, which defaults to <code>private</code>.
+     *
+     * @param viaName The name to add to the <code>Via</code> header.
+     * @return This builder
+     */
+    public ReverseProxyBuilder withViaName(String viaName) {
+        Mutils.notNull("viaName", viaName);
+        this.viaName = viaName;
+        return this;
+    }
+
+    /**
+     * Specifies the JDK HTTP client to use to make the request to the target server. It's recommended
+     * you do not set this in order to use the default client that is optimised for reverse proxy usage.
+     *
+     * @param httpClient The HTTP client to use, or null to use the default client.
+     * @return This builder
+     */
+    public ReverseProxyBuilder withHttpClient(HttpClient httpClient) {
+        this.httpClient = httpClient;
+        return this;
+    }
+
+    /**
+     * Creates a new HTTP Client builder that is suitable for use in mu reverse proxy.
+     *
+     * @param trustAll If true, then any SSL certificate is allowed.
+     * @return An HTTP Client builder
+     */
+    public static HttpClient.Builder createHttpClientBuilder(boolean trustAll) {
+        return HttpClientUtils.createHttpClientBuilder(trustAll)
+            .followRedirects(HttpClient.Redirect.NEVER);
+    }
+
+    /**
+     * Required value. Sets the mapper to use for creating target URIs.
+     * <p>If you want to proxy all requests to a single destination, consider using {@link io.muserver.murp.UriMapper#toDomain(URI)}</p>
+     * <p>If the mapper function returns null, then the handler will not proxy the request and the next handler in the
+     * chain will be invoked (or a 404 will be returned if there are no further handlers that can handle the request).</p>
+     *
+     * @param uriMapper A mapper that creates a target URI based on a client request.
+     * @return This builder
+     */
+    public ReverseProxyBuilder withUriMapper(UriMapper uriMapper) {
+        this.uriMapper = uriMapper;
+        return this;
+    }
+
+    /**
+     * Murp always sends <code>Forwarded</code> headers, however by default does not send the
+     * non-standard <code>X-Forwarded-*</code> headers. Set this to <code>true</code> to enable
+     * these legacy headers for older clients that rely on them.
+     *
+     * @param sendLegacyForwardedHeaders <code>true</code> to forward headers such as <code>X-Forwarded-Host</code>; otherwise <code>false</code>
+     * @return This builder
+     */
+    public ReverseProxyBuilder sendLegacyForwardedHeaders(boolean sendLegacyForwardedHeaders) {
+        this.sendLegacyForwardedHeaders = sendLegacyForwardedHeaders;
+        return this;
+    }
+
+    /**
+     * <p>Specifies whether to send the original <code>Host</code> header to the target server.</p>
+     * <p>Reverse proxies are generally supposed to forward the original <code>Host</code> header to target
+     * servers, however there are cases (particularly where you are proxying to HTTPS servers) that the
+     * Host needs to match the Host of the SSL certificate (in which case you may see SNI-related errors).</p>
+     *
+     * @param sendHostToTarget If <code>true</code> (which is the default) the <code>Host</code> request
+     *                         header will be sent to the target; if <code>false</code> then the host header
+     *                         will be based on the target's URL.
+     * @return This builder
+     */
+    public ReverseProxyBuilder proxyHostHeader(boolean sendHostToTarget) {
+        if (sendHostToTarget) {
+            if (HttpClientUtils.DISALLOWED_REQUEST_HEADERS.contains("host")) {
+                throw new IllegalStateException(
+                    "Host header is not allowed to be set in JDK HTTP client at your current JDK version, " +
+                        "please try upgrading to JDK 17 or higher."
+                );
+            }
+            doNotProxyHeaders.remove("host");
+        } else {
+            doNotProxyHeaders.add("host");
+        }
+        return this;
+    }
+
+    /**
+     * If true, then any <code>Forwarded</code> or <code>X-Forwarded-*</code> headers that are sent
+     * from the client to this reverse proxy will be dropped (defaults to false). Set this to <code>true</code>
+     * if you do not trust the client.
+     *
+     * @param discardClientForwardedHeaders <code>true</code> to ignore Forwarded headers from the client; otherwise <code>false</code>
+     * @return This builder
+     */
+    public ReverseProxyBuilder discardClientForwardedHeaders(boolean discardClientForwardedHeaders) {
+        this.discardClientForwardedHeaders = discardClientForwardedHeaders;
+        return this;
+    }
+
+    /**
+     * Sets the total request timeout in millis for a proxied request. Defaults to 5 minutes.
+     *
+     * @param totalTimeoutInMillis The allowed time in milliseconds for a request.
+     * @return This builder
+     */
+    public ReverseProxyBuilder withTotalTimeout(long totalTimeoutInMillis) {
+        this.totalTimeoutInMillis = totalTimeoutInMillis;
+        return this;
+    }
+
+    /**
+     * Sets the total request timeout in millis for a proxied request. Defaults to 5 minutes.
+     *
+     * @param totalTimeout The allowed time for a request.
+     * @param unit         The timeout unit.
+     * @return This builder
+     */
+    public ReverseProxyBuilder withTotalTimeout(long totalTimeout, TimeUnit unit) {
+        return withTotalTimeout(unit.toMillis(totalTimeout));
+    }
+
+    /**
+     * Registers a proxy completion listener.
+     *
+     * @param proxyCompleteListener A listener to be called when a proxy request is complete
+     * @return This builder
+     */
+    public ReverseProxyBuilder addProxyCompleteListener(ProxyCompleteListener proxyCompleteListener) {
+        if (proxyCompleteListeners == null) {
+            proxyCompleteListeners = new ArrayList<>(1);
+        }
+        proxyCompleteListeners.add(proxyCompleteListener);
+        return this;
+    }
+
+    /**
+     * Adds an interceptor to the point where a request to the target server has been prepared, but not sent. This
+     * allows you to change the headers being proxied to the target server.
+     *
+     * @param requestInterceptor An interceptor that may change the target request, or null to not have an interceptor.
+     * @return This builder.
+     */
+    public ReverseProxyBuilder withRequestInterceptor(RequestInterceptor requestInterceptor) {
+        this.requestInterceptor = requestInterceptor;
+        return this;
+    }
+
+    /**
+     * Adds an interceptor to the point where a response to the client has been prepared, but not sent. This
+     * allows you to change the response code or headers being returned to the client.
+     *
+     * @param responseInterceptor An interceptor that may change the client response, or null to not have an interceptor.
+     * @return This builder.
+     */
+    public ReverseProxyBuilder withResponseInterceptor(ResponseInterceptor responseInterceptor) {
+        this.responseInterceptor = responseInterceptor;
+        return this;
+    }
+
+
+    /**
+     * Adds a proxy listener to observe the life cycle of a request, it's useful for debug or metric
+     *
+     * @param proxyListener proxy listener
+     * @return This builder.
+     */
+    public ReverseProxyBuilder withProxyListener(ProxyListener proxyListener) {
+        this.proxyListener = proxyListener;
+        return this;
+    }
+
+
+    /**
+     * Creates and returns a new instance of a reverse proxy builder.
+     *
+     * @return A builder
+     */
+    public static ReverseProxyBuilder reverseProxy() {
+        return new ReverseProxyBuilder();
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * Creates a new ReverseProxy which is a MuHandler. You can pass the resulting handler directly
+     * to {@link io.muserver.MuServerBuilder#addHandler(MuHandler)}
+     */
+    @Override
+    public ReverseProxy build() {
+        if (uriMapper == null) {
+            throw new IllegalStateException("A URI mapper must be specified");
+        }
+
+        HttpClient client = httpClient;
+        if (client == null) {
+            client = createHttpClientBuilder(true).build();
+        }
+
+        List<ProxyCompleteListener> proxyCompleteListeners = this.proxyCompleteListeners;
+        if (proxyCompleteListeners == null) {
+            proxyCompleteListeners = emptyList();
+        }
+
+        final HashSet<Object> notProxyHeaders = new HashSet<>() {{
+            addAll(HttpClientUtils.DISALLOWED_REQUEST_HEADERS);
+            addAll(doNotProxyHeaders);
+            remove("content-length"); // JDK http client will set it base on the actual body
+        }};
+
+        log.warn("these headers will not be proxied: {}", notProxyHeaders.stream().sorted().collect(Collectors.toList()));
+
+        return new ReverseProxy(client, uriMapper, totalTimeoutInMillis, proxyCompleteListeners, viaName,
+                discardClientForwardedHeaders, sendLegacyForwardedHeaders, doNotProxyHeaders,
+                requestInterceptor, responseInterceptor, proxyListener);
+    }
+}
+
+
+
+================================================
+FILE: src/main/java/io/muserver/murp/Slf4jResponseLogger.java
+================================================
+package io.muserver.murp;
+
+import io.muserver.MuRequest;
+import io.muserver.MuResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.net.URI;
+
+/**
+ * A listener that logs the results of proxying to slf4j which can be added with {@link io.muserver.murp.ReverseProxyBuilder#addProxyCompleteListener(ProxyCompleteListener)}
+ *
+ * @author Daniel Flower
+ * @version 1.0
+ */
+public class Slf4jResponseLogger implements ProxyCompleteListener {
+    private static final Logger log = LoggerFactory.getLogger(ReverseProxy.class);
+
+    /**
+     * Default constructor
+     */
+    public Slf4jResponseLogger() {
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void onComplete(MuRequest clientRequest, MuResponse clientResponse, URI targetUri, long durationMillis) {
+        log.info("Proxied " + clientRequest + " to " + targetUri + " and returned " + clientResponse.status() + " in " + durationMillis + "ms");
+    }
+}
+
+
+
+================================================
+FILE: src/main/java/io/muserver/murp/UriMapper.java
+================================================
+package io.muserver.murp;
+
+import io.muserver.MuRequest;
+
+import java.net.URI;
+
+/**
+ * A function that maps an incoming request to a target URI.
+ *
+ * @author Daniel Flower
+ * @version 1.0
+ */
+public interface UriMapper {
+
+    /**
+     * Gets a URI to proxy to based on the given request.
+     *
+     * @param request The client request to potentially proxy.
+     * @return A URI if this request should be proxied; otherwise null.
+     * @throws java.lang.Exception Unhandled exceptions will result in an HTTP 500 error being sent to the client
+     */
+    URI mapFrom(MuRequest request) throws Exception;
+
+    /**
+     * Creates a mapper that directs all requests to a new target domain.
+     *
+     * @param targetDomain The target URI to send proxied requests to. Any path or query strings will be ignored.
+     * @return Returns a URI mapper that can be passed to {@link io.muserver.murp.ReverseProxyBuilder#withUriMapper(UriMapper)}
+     */
+    static UriMapper toDomain(URI targetDomain) {
+        return request -> {
+            String pathAndQuery = Murp.pathAndQuery(request.uri());
+            return targetDomain.resolve(pathAndQuery);
+        };
+    }
+
+}
+
+
+
+================================================
+FILE: src/test/java/Example.java
+================================================
+import io.muserver.MuServer;
+import io.muserver.murp.Murp;
+import io.muserver.murp.ReverseProxyBuilder;
+
+import java.net.URI;
+
+import static io.muserver.MuServerBuilder.muServer;
+
+public class Example {
+
+    public static void main(String[] args) {
+
+        // This creates a proxy of the MDN docs
+
+        MuServer server = muServer()
+            .withHttpPort(12080)
+            .withHttpsPort(12443)
+            .addHandler(
+                ReverseProxyBuilder.reverseProxy()
+                    .withUriMapper(request -> {
+                        String pathAndQuery = Murp.pathAndQuery(request.uri());
+                        return URI.create("https://developer.mozilla.org").resolve(pathAndQuery);
+                    })
+                    .proxyHostHeader(false)
+            )
+            .start();
+
+        System.out.println("Load " + server.httpUri() + " or " + server.httpsUri() + " to proxy to the target");
+
+    }
+}
+
+
+
+================================================
+FILE: src/test/java/ManualTest.java
+================================================
+import io.muserver.Method;
+import io.muserver.MuServer;
+import io.muserver.SsePublisher;
+import io.muserver.handlers.ResourceHandlerBuilder;
+import io.muserver.murp.Murp;
+import io.muserver.murp.ReverseProxyBuilder;
+
+import static io.muserver.MuServerBuilder.httpServer;
+import static io.muserver.MuServerBuilder.muServer;
+
+public class ManualTest {
+
+    public static void main(String[] args) {
+
+        MuServer target = httpServer()
+                .withHttpPort(14080)
+                .withHttpsPort(14443)
+                .addHandler(Method.GET, "/sse", (request, response, pathParams) -> {
+                    SsePublisher sse = SsePublisher.start(request, response);
+                    for (int i = 0; i < 10000; i++) {
+                        sse.send("This is message " + i + "\n");
+                        Thread.sleep(5000);
+                    }
+                    sse.close();
+                })
+                .addHandler(Method.GET, "/hi", (request, response, pathParams) -> response.write("Hi"))
+                .addHandler(ResourceHandlerBuilder.fileHandler(".").withDirectoryListing(true))
+                .start();
+
+        System.out.println("target started at " + target.uri());
+
+        MuServer server = muServer()
+                .withHttpPort(13080)
+                .withHttpsPort(13443)
+                .addHandler(
+                        ReverseProxyBuilder.reverseProxy()
+                                .addProxyCompleteListener((clientRequest, clientResponse, targetUri, durationMillis) -> {
+                                    System.out.println("Completed " + clientRequest + " in " + durationMillis + "ms");
+                                })
+                                .withUriMapper(request -> {
+                                    String pathAndQuery = Murp.pathAndQuery(request.uri());
+                                    return target.uri().resolve(pathAndQuery);
+                                })
+                                .proxyHostHeader(false)
+                )
+                .start();
+
+        System.out.println("Load " + server.httpUri() + " or " + server.httpsUri() + " to proxy to the target");
+
+    }
+}
+
+
+
+================================================
+FILE: src/test/java/io/muserver/murp/MockMuRequest.java
+================================================
+package io.muserver.murp;
+
+import io.muserver.*;
+
+import java.io.InputStream;
+import java.net.URI;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+public class MockMuRequest implements MuRequest {
+    private final URI requestUri;
+
+    public MockMuRequest(URI uri) {
+        this.requestUri = uri;
+    }
+
+    @Override
+    public String contentType() {
+        return null;
+    }
+
+    @Override
+    public long startTime() {
+        return System.currentTimeMillis();
+    }
+
+    @Override
+    public Method method() {
+        return null;
+    }
+
+    @Override
+    public URI uri() {
+        return requestUri;
+    }
+
+    @Override
+    public URI serverURI() {
+        return requestUri;
+    }
+
+    @Override
+    public Headers headers() {
+        return null;
+    }
+
+    @Override
+    public Optional<InputStream> inputStream() {
+        return Optional.empty();
+    }
+
+    @Override
+    public String readBodyAsString() {
+        return null;
+    }
+
+    @Override
+    public List<UploadedFile> uploadedFiles(String name) {
+        return null;
+    }
+
+    @Override
+    public UploadedFile uploadedFile(String name) {
+        return null;
+    }
+
+    @Override
+    public RequestParameters query() {
+        return null;
+    }
+
+    @Override
+    public RequestParameters form() {
+        return null;
+    }
+
+    @Override
+    public List<Cookie> cookies() {
+        return null;
+    }
+
+    @Override
+    public Optional<String> cookie(String name) {
+        return Optional.empty();
+    }
+
+    @Override
+    public String contextPath() {
+        return null;
+    }
+
+    @Override
+    public String relativePath() {
+        return null;
+    }
+
+    @Override
+    public Object attribute(String key) {
+        return null;
+    }
+
+    @Override
+    public void attribute(String key, Object value) {
+
+    }
+
+    @Override
+    public Map<String, Object> attributes() {
+        return null;
+    }
+
+    @Override
+    public AsyncHandle handleAsync() {
+        return null;
+    }
+
+    @Override
+    public String remoteAddress() {
+        return null;
+    }
+
+    @Override
+    public String clientIP() {
+        return null;
+    }
+
+    @Override
+    public MuServer server() {
+        return null;
+    }
+
+    @Override
+    public boolean isAsync() {
+        return false;
+    }
+
+    @Override
+    public String protocol() {
+        return null;
+    }
+
+    @Override
+    public HttpConnection connection() {
+        return null;
+    }
+}
+
+
+
+================================================
+FILE: src/test/java/io/muserver/murp/MurpTest.java
+================================================
+package io.muserver.murp;
+
+import org.junit.Assert;
+import org.junit.Test;
+
+import java.net.URI;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.startsWith;
+
+public class MurpTest {
+
+    @Test
+    public void canGetPathAndQueries() {
+        Assert.assertThat(Murp.pathAndQuery(URI.create("http://localhost/this/is/a%20path")),
+            equalTo("/this/is/a%20path"));
+
+        Assert.assertThat(Murp.pathAndQuery(URI.create("http://localhost/a%20path?a%20param=a%20value")),
+            equalTo("/a%20path?a%20param=a%20value"));
+
+        Assert.assertThat(Murp.pathAndQuery(URI.create("http://localhost/a%20path?")),
+            equalTo("/a%20path?"));
+    }
+
+    @Test
+    public void versionWorks() {
+        assertThat(Murp.artifactVersion(), startsWith("0."));
+    }
+
+}
+
+
+================================================
+FILE: src/test/java/io/muserver/murp/TimeoutsTest.java
+================================================
+package io.muserver.murp;
+
+import io.muserver.Method;
+import io.muserver.MuServer;
+import org.junit.After;
+import org.junit.Test;
+
+import java.io.IOException;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+
+import static io.muserver.MuServerBuilder.httpServer;
+import static io.muserver.MuServerBuilder.httpsServer;
+import static io.muserver.murp.ReverseProxyBuilder.createHttpClientBuilder;
+import static io.muserver.murp.ReverseProxyBuilder.reverseProxy;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
+import static org.junit.Assert.assertThrows;
+
+public class TimeoutsTest {
+
+    private static final java.net.http.HttpClient client = createHttpClientBuilder(true).build();
+
+    private MuServer targetServer;
+    private MuServer reverseProxyServer;
+
+    @Test
+    public void totalTimeoutCauses504() throws Exception {
+        targetServer = httpServer()
+                .addHandler(Method.GET, "/",
+                        (request, response, pathParams) -> Thread.sleep(200))
+                .start();
+
+        reverseProxyServer = httpsServer()
+                .addHandler(reverseProxy()
+                        .withUriMapper(UriMapper.toDomain(targetServer.uri()))
+                        .withTotalTimeout(1)
+                )
+                .start();
+
+        HttpResponse<String> resp = client.send(HttpRequest.newBuilder()
+                .uri(reverseProxyServer.uri())
+                .build(), HttpResponse.BodyHandlers.ofString());
+
+        assertThat(resp.statusCode(), is(504));
+        assertThat(resp.body(), containsString("504 Gateway Timeout"));
+    }
+
+    @Test
+    public void idleTimeoutCausesDisconnection() throws Exception {
+        targetServer = httpServer()
+                .addHandler(Method.GET, "/",
+                        (request, response, pathParams) -> {
+                            response.sendChunk("Hello");
+                            Thread.sleep(200);
+                            try {
+                                response.sendChunk("Goodbye");
+                            } catch (Exception ignored) {
+                            }
+                        })
+                .start();
+
+        reverseProxyServer = httpsServer()
+                .addHandler(reverseProxy()
+                        .withUriMapper(UriMapper.toDomain(targetServer.uri()))
+                        .withTotalTimeout(50)
+                        .withHttpClient(HttpClientUtils
+                                .createHttpClientBuilder(true)
+                                .build())
+                )
+                .start();
+
+        IOException ioException = assertThrows("", IOException.class, () -> {
+            client.send(HttpRequest.newBuilder()
+                .uri(reverseProxyServer.uri())
+                .build(), HttpResponse.BodyHandlers.ofString());
+        });
+        assertThat(ioException.getMessage(), is("chunked transfer encoding, state: READING_LENGTH"));
+    }
+
+    @After
+    public void stopServers() {
+        if (targetServer != null) {
+            targetServer.stop();
+        }
+        if (reverseProxyServer != null) {
+            reverseProxyServer.stop();
+        }
+    }
+
+}
+
+
+
+================================================
+FILE: src/test/java/io/muserver/murp/UriMapperTest.java
+================================================
+package io.muserver.murp;
+
+import org.junit.Test;
+
+import java.net.URI;
+
+import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertThat;
+
+public class UriMapperTest {
+
+    @Test
+    public void canJustForwardEverythingToANewDomain() throws Exception {
+        UriMapper mapper = UriMapper.toDomain(URI.create("http://localhost:1234/ignored?ignore=yes"));
+
+        assertThat(mapper.mapFrom(new MockMuRequest(URI.create("https://murp.example.org"))),
+            equalTo(URI.create("http://localhost:1234/")));
+
+        assertThat(mapper.mapFrom(new MockMuRequest(URI.create("https://murp.example.org/"))),
+            equalTo(URI.create("http://localhost:1234/")));
+
+        assertThat(mapper.mapFrom(new MockMuRequest(URI.create("https://murp.example.org/mm%20hmm"))),
+            equalTo(URI.create("http://localhost:1234/mm%20hmm")));
+
+        assertThat(mapper.mapFrom(new MockMuRequest(URI.create("https://murp.example.org/mm%20hmm?blah=yee%20ha"))),
+            equalTo(URI.create("http://localhost:1234/mm%20hmm?blah=yee%20ha")));
+
+        assertThat(mapper.mapFrom(new MockMuRequest(URI.create("https://murp.example.org/mm%20hmm?blah=yee%20ha&err=umm"))),
+            equalTo(URI.create("http://localhost:1234/mm%20hmm?blah=yee%20ha&err=umm")));
+
+        assertThat(mapper.mapFrom(new MockMuRequest(URI.create("https://murp.example.org/mm%20hmm?blah=yee%20ha&err=umm#hashisignored"))),
+            equalTo(URI.create("http://localhost:1234/mm%20hmm?blah=yee%20ha&err=umm")));
+    }
+}
+
+
+
+================================================
+FILE: src/test/java/scaffolding/ClientUtils.java
+================================================
+package scaffolding;
+
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+import java.io.IOException;
+import java.lang.management.ManagementFactory;
+import java.net.URI;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+public class ClientUtils {
+
+    public static final OkHttpClient client;
+    private static X509TrustManager veryTrustingTrustManager = veryTrustingTrustManager();
+
+    static {
+        Logger.getLogger(OkHttpClient.class.getName()).setLevel(Level.FINE);
+        boolean isDebug = ManagementFactory.getRuntimeMXBean().getInputArguments().toString().contains("jdwp");
+        client = new OkHttpClient.Builder()
+            .retryOnConnectionFailure(false)
+//            .protocols(Collections.singletonList(Protocol.HTTP_1_1))
+            .followRedirects(false)
+            .followSslRedirects(false)
+            .hostnameVerifier((hostname, session) -> true)
+            .readTimeout(isDebug ? 180 : 20, TimeUnit.SECONDS)
+            .sslSocketFactory(sslContextForTesting(veryTrustingTrustManager).getSocketFactory(), veryTrustingTrustManager).build();
+    }
+
+    public static Request.Builder request() {
+        return new Request.Builder();
+    }
+    public static Request.Builder request(URI uri) {
+        return request().url(uri.toString());
+    }
+
+    public static Response call(Request.Builder request) {
+        Request req = request.build();
+        try {
+            return client.newCall(req).execute();
+        } catch (IOException e) {
+            throw new RuntimeException("Error while calling " + req, e);
+        }
+    }
+
+    public static SSLContext sslContextForTesting(TrustManager trustManager) {
+        try {
+            SSLContext context = SSLContext.getInstance("TLS");
+            context.init(null, new TrustManager[]{trustManager}, null);
+            return context;
+        } catch (Exception e) {
+            throw new RuntimeException("Cannot set up test SSLContext", e);
+        }
+    }
+
+    public static X509TrustManager veryTrustingTrustManager() {
+        return new X509TrustManager() {
+            public void checkClientTrusted(java.security.cert.X509Certificate[] chain, String authType) {
+            }
+
+            public void checkServerTrusted(java.security.cert.X509Certificate[] chain, String authType) {
+            }
+
+            public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+                return new java.security.cert.X509Certificate[]{};
+            }
+        };
+    }
+
+    public static boolean isHttp2(Response response) {
+        return response.protocol().name().equalsIgnoreCase("HTTP_2");
+    }
+}
+
+
+
+================================================
+FILE: src/test/java/scaffolding/MuAssert.java
+================================================
+package scaffolding;
+
+import io.muserver.MuServer;
+import org.hamcrest.Matcher;
+import org.junit.Assert;
+
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.is;
+
+public class MuAssert {
+
+
+    public static void assertNotTimedOut(String message, CountDownLatch latch) {
+        assertNotTimedOut(message, latch, 30, TimeUnit.SECONDS);
+    }
+
+    public static void assertNotTimedOut(String message, CountDownLatch latch, int timeout, TimeUnit unit) {
+        try {
+            boolean completed = latch.await(timeout, unit);
+            assertThat("Timed out: " + message, completed, is(true));
+        } catch (InterruptedException e) {
+            throw new RuntimeException("Interrupted");
+        }
+    }
+
+    public static void sleep(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+            throw new RuntimeException("Interrupted", e);
+        }
+    }
+
+    public static void stopAndCheck(MuServer server) {
+        if (server != null) {
+            int count = 0;
+            while (count < 40 && !server.stats().activeRequests().isEmpty()) {
+                sleep(50);
+                count++;
+            }
+            assertThat("Expected no requests to still be in flight when stopping server",
+                server.stats().activeRequests(), is(empty()));
+            server.stop();
+        }
+    }
+
+    public static <T> void assertEventually(Func<T> actual, Matcher<? super T> matcher) {
+        for (int i = 0; i < 100; i++) {
+            try {
+                T val = actual.apply();
+                if (matcher.matches(val)) {
+                    return;
+                }
+            } catch (Exception ignored) {
+            }
+            try {
+                Thread.sleep(200);
+            } catch (InterruptedException e) {
+                throw new RuntimeException("Finishing early", e);
+            }
+        }
+        try {
+            assertThat(actual.apply(), matcher);
+        } catch (Exception e) {
+            Assert.fail("Lambda threw exception: " + e);
+        }
+    }
+
+    public interface Func<V> {
+        public V apply() throws Exception;
+    }
+}
+
+
+
+================================================
+FILE: src/test/java/scaffolding/RawClient.java
+================================================
+package scaffolding;
+
+import java.io.*;
+import java.net.Socket;
+import java.net.URI;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+public class RawClient implements Closeable {
+    private static final ExecutorService executorService = Executors.newCachedThreadPool();
+
+    private final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    private BufferedOutputStream request;
+    private Socket socket;
+    private InputStream response;
+    private final AtomicBoolean isConnected = new AtomicBoolean(false);
+    private final AtomicReference<Exception> exception = new AtomicReference<>();
+
+    public static RawClient create(URI uri) throws IOException {
+        RawClient rawClient = new RawClient();
+        rawClient.start(uri);
+        return rawClient;
+    }
+
+    private void start(URI uri) throws IOException {
+        this.socket = new Socket(uri.getHost(), uri.getPort());
+        this.request = new BufferedOutputStream(socket.getOutputStream(), 2048);
+        this.response = socket.getInputStream();
+        isConnected.set(true);
+
+        executorService.submit(() -> {
+            byte[] buffer = new byte[8192];
+            int read;
+            try {
+                while ((read = response.read(buffer)) > -1) {
+//                    System.out.println("Got " + read + " bytes: " + new String(buffer, 0, read, UTF_8));
+                    if (read > 0) {
+                        baos.write(buffer, 0, read);
+                    }
+                }
+            } catch (IOException e) {
+//                System.out.println("Got exception " + e);
+                exception.set(e);
+                isConnected.set(false);
+            }
+
+        });
+    }
+
+    public RawClient send(byte[] bytes) throws IOException {
+        if (bytes.length > 0) {
+            request.write(bytes);
+        }
+        return this;
+    }
+    public RawClient sendUTF8(String message) throws IOException {
+        send(message.getBytes(UTF_8));
+        return this;
+    }
+    public RawClient sendLine(String line) throws IOException {
+        sendUTF8(line + "\r\n");
+        return this;
+    }
+
+    public boolean isConnected() {
+        return isConnected.get();
+    }
+
+    public RawClient sendStartLine(String method, String target) throws IOException {
+        sendLine(method + " " + target + " HTTP/1.1");
+        return this;
+    }
+
+    public RawClient sendHeader(String name, String value) throws IOException {
+        sendLine(name + ": " + value);
+        return this;
+    }
+    public RawClient endHeaders() throws IOException {
+        sendLine("");
+        return this;
+    }
+    public RawClient flushRequest() throws IOException {
+        request.flush();
+        return this;
+    }
+
+    public RawClient closeRequest() throws IOException {
+        request.close();
+        request = null;
+        return this;
+    }
+    public RawClient closeResponse() throws IOException {
+        response.close();
+        response = null;
+        return this;
+    }
+
+    public long bytesReceived() {
+        return baos.size();
+    }
+
+    public String responseString() {
+        try {
+            return baos.toString("UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public byte[] asBytes() {
+        return baos.toByteArray();
+    }
+
+    @Override
+    public void close() {
+        close(request);
+        close(response);
+        close(socket);
+        isConnected.set(false);
+    }
+
+    private static void close(Closeable closeable) {
+        if (closeable != null) {
+            try {
+                closeable.close();
+            } catch (IOException e) {
+            }
+        }
+    }
+
+    public void clear() {
+        baos.reset();
+    }
+}
+
+
+
+================================================
+FILE: src/test/java/scaffolding/StringUtils.java
+================================================
+package scaffolding;
+
+import java.util.Random;
+
+public class StringUtils {
+    public static String randomStringOfLength(int numberOfCharacters) {
+        Random rng = new Random();
+        StringBuilder sb = new StringBuilder(numberOfCharacters);
+        for (int i = 0; i < numberOfCharacters; i++) {
+            char c = (char) (rng.nextInt(30000) + 33);
+            sb.append(c);
+        }
+        return sb.toString();
+    }
+    public static String randomAsciiStringOfLength(int numberOfCharacters) {
+        Random rng = new Random();
+        StringBuilder sb = new StringBuilder(numberOfCharacters);
+        for (int i = 0; i < numberOfCharacters; i++) {
+            char c = (char) (rng.nextInt(89) + 33);
+            sb.append(c);
+        }
+        return sb.toString();
+    }
+	public static byte[] randomBytes(int len) {
+	    byte[] res = new byte[len];
+        Random rng = new Random();
+        rng.nextBytes(res);
+        return res;
+    }
+}
+
+
+
+================================================
+FILE: .github/workflows/ci.yaml
+================================================
+name: Build and test
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        java: [ 11, 17, 21 ]
+    name: Java ${{ matrix.java }} build
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK ${{ matrix.java }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ matrix.java }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Build with Maven on JDK ${{ matrix.java }}
+        run: mvn --batch-mode --update-snapshots verify
+
+
+
+================================================
+FILE: .github/workflows/release.yaml
+================================================
+name: Publish to Maven Central Repository
+on: workflow_dispatch
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Maven Central Repository
+        uses: actions/setup-java@v4
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+          cache: 'maven'
+          server-id: central
+          server-username: CENTRAL_USERNAME
+          server-password: CENTRAL_TOKEN
+      - run: git config --global user.email "test@example.com"
+      - run: git config --global user.name "Github Action"
+      - run: echo "M2_HOME=$(dirname $(dirname `which mvn`))" >> $GITHUB_ENV
+      - name: Verify package
+        run: mvn --batch-mode verify
+      - name: Release package
+        run: mvn --batch-mode -DskipTests=true releaser:release
+        env:
+          CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
+          CENTRAL_TOKEN: ${{ secrets.CENTRAL_TOKEN }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }}
+          MAVEN_GPG_KEY: ${{ secrets.OSSRH_GPG_SECRET_KEY }}
+
+
