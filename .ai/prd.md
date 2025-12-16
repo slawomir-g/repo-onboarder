@@ -5,7 +5,7 @@
 Repo Onboarder is an AI-powered documentation generation service designed to accelerate developer onboarding to new projects. 
 The application analyzes public Git repositories, extracts project structure and development history, and generates comprehensive documentation for both human developers and AI coding assistants.
 
-The system operates as a REST API service built on Java 21 and Spring Boot 3, utilizing Google's Gemini 2.5 Pro model via Spring AI framework. 
+The system operates as a REST API service built on Java 25 and Spring Boot 4, utilizing Google's Gemini 2.5 Pro model via Spring AI framework. 
 The application is distributed as a locally executable JAR file, allowing users to run it on their own infrastructure with their own API credentials.
 
 Key capabilities include:
@@ -201,8 +201,8 @@ The system must provide progress information:
 
 ### 4.3 Technical Constraints
 
-- Java 21 minimum requirement
-- Spring Boot 3 framework
+- Java 25 minimum requirement
+- Spring Boot 4 framework
 - Spring AI for LLM integration
 - JGit for Git operations
 - Gemini 2.5 Pro API access required
