@@ -189,8 +189,7 @@ The system must provide progress information:
 - Other technology stacks (Python, Go, Ruby, etc.)
 - Dynamic code analysis (running builds or tests)
 - Automated testing in CI/CD pipeline
-- User authentication and authorization
-- Web-based dashboard
+- User authentication and authorization 
 - Database persistence of results
 - Result caching or history
 - Real-time WebSocket updates

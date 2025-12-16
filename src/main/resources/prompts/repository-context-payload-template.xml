@@ -1,0 +1,25 @@
+<repository_context version="1.0">
+    <metadata>
+        <project_name>{{PROJECT_NAME_PAYLOAD}}</project_name>
+        <analysis_timestamp>{{ANALYSIS_TIMESTAMP_PAYLOAD}}</analysis_timestamp>
+        <branch>{{BRANCH_PAYLOAD}}</branch>
+    </metadata>
+
+    <structural_analysis>
+        <directory_tree>
+{{DIRECTORY_TREE_PAYLOAD}}
+        </directory_tree>
+    </structural_analysis>
+    <temporal_analysis>
+        <hotspots>
+{{HOTSPOTS_PAYLOAD}}
+        </hotspots>
+        <recent_history>
+{{COMMIT_HISTORY_PAYLOAD}}
+        </recent_history>
+    </temporal_analysis>
+
+    <source_code_corpus>
+{{SOURCE_CODE_CORPUS_PAYLOAD}}
+    </source_code_corpus>
+</repository_context>
