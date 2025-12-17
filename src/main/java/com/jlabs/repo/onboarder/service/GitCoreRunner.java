@@ -3,11 +3,15 @@ package com.jlabs.repo.onboarder.service;
 import com.jlabs.repo.onboarder.config.GitCoreProperties;
 import com.jlabs.repo.onboarder.git.*;
 import com.jlabs.repo.onboarder.markdown.*;
+import com.jlabs.repo.onboarder.model.DocumentationResult;
 import com.jlabs.repo.onboarder.model.GitReport;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 
 @Service
@@ -27,6 +31,7 @@ public class GitCoreRunner {
     private final DirectoryTreePayloadWriter directoryTreePayloadWriter;
     private final HotspotsPayloadWriter hotspotsPayloadWriter;
     private final SourceCodeCorpusPayloadWriter sourceCodeCorpusPayloadWriter;
+    private final DocumentationGenerationService documentationGenerationService;
 
     public GitCoreRunner(
             GitCoreProperties properties,
@@ -37,7 +42,8 @@ public class GitCoreRunner {
             GitFileCollector fileCollector,
             GitCommitCollector commitCollector, GitHotspotsCollector hotspotsCollector,
             MarkdownReportWriter markdownWriter,
-            CommitHistoryPayloadWriter commitHistoryPayloadWriter, DirectoryTreePayloadWriter directoryTreePayloadWriter, HotspotsPayloadWriter hotspotsPayloadWriter, SourceCodeCorpusPayloadWriter sourceCodeCorpusPayloadWriter
+            CommitHistoryPayloadWriter commitHistoryPayloadWriter, DirectoryTreePayloadWriter directoryTreePayloadWriter, HotspotsPayloadWriter hotspotsPayloadWriter, SourceCodeCorpusPayloadWriter sourceCodeCorpusPayloadWriter,
+            DocumentationGenerationService documentationGenerationService
     ) {
         this.properties = properties;
         this.analysisContext = analysisContext;
@@ -52,11 +58,18 @@ public class GitCoreRunner {
         this.directoryTreePayloadWriter = directoryTreePayloadWriter;
         this.hotspotsPayloadWriter = hotspotsPayloadWriter;
         this.sourceCodeCorpusPayloadWriter = sourceCodeCorpusPayloadWriter;
+        this.documentationGenerationService = documentationGenerationService;
     }
 
-public void run() throws Exception {
+    /**
+     * Wykonuje pełną analizę repozytorium Git i generuje dokumentację przy użyciu AI.
+     * 
+     * @return wynik generacji dokumentacji zawierający README, Architecture i Context File
+     * @throws Exception gdy wystąpi błąd podczas analizy lub generacji dokumentacji
+     */
+    public DocumentationResult run() throws Exception {
 
-        Path appWorkingDir = Path.of(System.getProperty("user.dir"));
+        Path appWorkingDir = Path.of(System.getProperty("user.dir"), "working_directory");
         Path outputFile = appWorkingDir.resolve(properties.getOutput().getMarkdown());
 
         CredentialsProvider credentials =
@@ -78,6 +91,11 @@ public void run() throws Exception {
 
             hotspotsCollector.collect(report);
 
+            // Generuj dokumentację przy użyciu AI
+            Path repoRoot = ctx.repositoryRoot();
+            DocumentationResult result = documentationGenerationService.generateDocumentation(report, repoRoot);
+
+            // Zachowaj istniejące zapisywanie plików (dla debug mode zgodnie z PRD)
             markdownWriter.write(report, outputFile);
 
             Path commitHistoryFile =
@@ -104,6 +122,42 @@ public void run() throws Exception {
                     Path.of(properties.getWorkdir()),
                     sourceCorpusFile
             );
+
+            // Zapisz wygenerowaną dokumentację do plików
+            saveDocumentationResult(result, appWorkingDir);
+
+            return result;
+        }
+    }
+
+    /**
+     * Zapisuje wynik generacji dokumentacji do plików.
+     * Zapisuje trzy pliki: README.md, ARCHITECTURE.md i AI_CONTEXT_FILE.md
+     * zgodnie z formatem używanym przez inne payload writers.
+     * 
+     * @param result wynik generacji dokumentacji
+     * @param outputDir katalog docelowy dla plików
+     * @throws IOException gdy wystąpi błąd podczas zapisu plików
+     */
+    private void saveDocumentationResult(DocumentationResult result, Path outputDir) throws IOException {
+        Files.createDirectories(outputDir);
+
+        // Zapisz README.md
+        if (result.getReadme() != null && !result.getReadme().isBlank()) {
+            Path readmeFile = outputDir.resolve("README.md");
+            Files.writeString(readmeFile, result.getReadme(), StandardCharsets.UTF_8);
+        }
+
+        // Zapisz ARCHITECTURE.md
+        if (result.getArchitecture() != null && !result.getArchitecture().isBlank()) {
+            Path architectureFile = outputDir.resolve("ARCHITECTURE.md");
+            Files.writeString(architectureFile, result.getArchitecture(), StandardCharsets.UTF_8);
+        }
+
+        // Zapisz AI_CONTEXT_FILE.md
+        if (result.getContextFile() != null && !result.getContextFile().isBlank()) {
+            Path contextFile = outputDir.resolve("AI_CONTEXT_FILE.md");
+            Files.writeString(contextFile, result.getContextFile(), StandardCharsets.UTF_8);
         }
     }
 }

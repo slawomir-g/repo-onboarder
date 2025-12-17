@@ -22,7 +22,7 @@ public class CommitHistoryPayloadWriter {
         }
     }
 
-    private String generate(GitReport report) {
+    public String generate(GitReport report) {
         StringBuilder sb = new StringBuilder();
 
         report.commits.forEach(c -> {

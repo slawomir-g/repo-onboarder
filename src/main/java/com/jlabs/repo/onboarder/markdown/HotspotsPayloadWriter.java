@@ -23,7 +23,7 @@ public class HotspotsPayloadWriter {
         }
     }
 
-    private String generate(GitReport report) {
+    public String generate(GitReport report) {
         StringBuilder sb = new StringBuilder();
 
         report.fileStats.entrySet().stream()

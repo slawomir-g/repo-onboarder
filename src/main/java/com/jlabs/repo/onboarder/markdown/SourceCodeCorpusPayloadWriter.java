@@ -22,7 +22,7 @@ public class SourceCodeCorpusPayloadWriter {
         }
     }
 
-    private String generate(GitReport report, Path repoRoot) {
+    public String generate(GitReport report, Path repoRoot) {
         StringBuilder sb = new StringBuilder();
 
         for (String relativePath : report.allFilesAtHead) {
