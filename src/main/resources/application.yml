@@ -1,0 +1,21 @@
+spring:
+    application:
+        name=onboarder
+
+git-core:
+    repoUrl: "https://github.com/3redronin/mu-server.git"
+    branch: "master"
+    workdir: "repo-work"
+
+output:
+    markdown: "git_report.md"
+
+limits:
+    maxCommits: 200         # 0 = bez limitu
+    maxChangedFiles: 200    # 0 = bez limitu
+    includePatch: false     # patch w MD robi si? ogromny
+    maxPatchChars: 4000
+
+auth:
+    username: "x-access-token"
+    token: "" 
