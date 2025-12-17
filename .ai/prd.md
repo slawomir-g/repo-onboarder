@@ -106,10 +106,18 @@ The system must build a single comprehensive prompt containing:
 
 #### 3.3.2 AI Model Integration
 The system must communicate with Gemini 2.5 Pro via Spring AI framework:
-- Enforce JSON format in responses
-- Implement exponential backoff retry strategy for API failures
-- Handle rate limiting with appropriate delays
-- Manage API key configuration via application.properties
+- **Infrastructure Layer (`ChatModelClient`):**
+  - Enkapsuluje wszystkie szczegóły komunikacji z Spring AI `ChatModel`
+  - Implementuje exponential backoff retry strategy dla błędów API używając Spring Retry framework
+  - Używa deklaratywnej konfiguracji retry przez adnotację `@Retryable` z konfigurowalnymi parametrami
+  - Obsługuje rate limiting z odpowiednimi opóźnieniami (błędy rate limit są wykluczone z retry)
+  - Wyklucza błędy autoryzacji z retry (błędy nieprawidłowego API key kończą się natychmiast)
+  - Konwertuje `ChatResponse` na prosty `String` dla warstwy biznesowej
+- **Service Layer (`DocumentationGenerationService`):**
+  - Używa `ChatModelClient` jako abstrakcji infrastrukturalnej
+  - Skupia się na logice biznesowej: konstruowaniu promptów i parsowaniu odpowiedzi JSON
+  - Nie zawiera szczegółów implementacji Spring AI ani retry logic
+- **Configuration:** API key i parametry retry konfigurowane przez `application.yml` i `AiProperties`
 
 #### 3.3.3 Documentation Output
 The system must generate three types of documentation:
@@ -203,12 +211,20 @@ The system must provide progress information:
 - Java 25 minimum requirement
 - Spring Boot 4 framework
 - Spring AI for LLM integration
+- Spring Retry for declarative retry handling
+- Spring AOP (via spring-aspects) for retry proxy support
 - JGit for Git operations
 - Gemini 2.5 Pro API access required
 - Local execution environment
 - Temporary disk space for repository cloning
 
-### 4.4 Assumptions
+### 4.4 Architecture Principles
+
+- **Separation of Concerns:** Infrastructure components (e.g., `ChatModelClient` in `infrastructure.springai` package) are separated from business logic (e.g., `DocumentationGenerationService` in `service` package)
+- **Infrastructure Abstraction:** Low-level details of external integrations (Spring AI, retry logic, error handling) are encapsulated in infrastructure layer
+- **Business Logic Focus:** Service layer focuses on high-level business operations without knowledge of infrastructure implementation details
+
+### 4.5 Assumptions
 
 - Users have valid Gemini API keys
 - Users have sufficient disk space for repository cloning
@@ -331,10 +347,11 @@ Description: As a developer, I want the system to handle API rate limits gracefu
 
 Acceptance Criteria:
 - System detects rate limit errors from Gemini API
-- Exponential backoff retry strategy is implemented
-- System retries failed requests with increasing delays
-- Maximum retry attempts are configured and enforced
-- Job status reflects retry attempts in progress
+- Exponential backoff retry strategy is implemented using Spring Retry framework
+- System retries failed requests with increasing delays (configurable via application.yml)
+- Rate limit errors (429) are excluded from retry and fail immediately
+- Maximum retry attempts are configured and enforced via `AiProperties.retry.maxAttempts`
+- Retry parameters (initial delay, multiplier, max delay) are configurable
 - After maximum retries, job status is updated to FAILED
 - Error message indicates rate limiting issue
 
@@ -553,7 +570,7 @@ Acceptance Criteria:
 - Memory usage remains within reasonable bounds (target: <2GB for typical repositories)
 - Disk space usage for temporary files (target: cleaned up after processing)
 
-### ## 7. Implementation Status
+## 7. Implementation Status
 
 ### 7.1 Current Progress (as of Dec 17, 2025)
 
@@ -564,12 +581,23 @@ The project has completed the **Core Logic Implementation** phase. The applicati
   - Repository cloning and checkout mechanism.
   - Full analysis (metadata, file tree, commits, hotspots).
 - **AI Integration (Fully Wired):**
-  - **Service Layer:** `DocumentationGenerationService` manages AI interaction with retry logic and JSON parsing.
+  - **Infrastructure Layer:** `ChatModelClient` (in `infrastructure.springai` package) encapsulates all low-level AI communication details:
+    - Spring AI `ChatModel` API calls
+    - Retry logic with exponential backoff using Spring Retry framework (`@Retryable` annotation)
+    - Error handling (rate limit, authentication errors)
+    - Conversion of `ChatResponse` to `String`
+    - Retry parameters configured via SpEL expressions reading from `AiProperties`
+  - **Service Layer:** `DocumentationGenerationService` focuses on high-level business logic:
+    - Prompt construction (delegated to `PromptConstructionService`)
+    - AI interaction via `ChatModelClient` (infrastructure abstraction)
+    - JSON response parsing and validation
+    - Documentation result assembly
   - **Prompting:** `PromptConstructionService` builds context-aware prompts.
   - **Orchestration:** `GitCoreRunner` orchestrates the entire flow: Git Analysis -> Payload Generation -> AI Request -> File Output.
   - **Output:** The application saves generated `README.md`, `ARCHITECTURE.md`, and `AI_CONTEXT_FILE.md` to disk.
 - **Data Collection:** All context payloads (`COMMIT_HISTORY`, `DIRECTORY_TREE`, `HOTSPOTS`, `SOURCE_CODE_CORPUS`) are generated.
-- **Configuration:** `GitCoreProperties` and `AiProperties` manage settings (limits, API keys, retries).
+- **Configuration:** `GitCoreProperties` and `AiProperties` manage settings (limits, API keys, retries). `@EnableConfigurationProperties` configured in `OnboarderApplication`.
+- **Architecture:** Clear separation of concerns - infrastructure (`ChatModelClient`) separated from business logic (`DocumentationGenerationService`).
 
 #### In Progress / Pending
 - **Architecture Transition:** Refactoring from CLI (`CommandLineRunner`) to REST API (`@RestController`).
