@@ -115,7 +115,7 @@ Here is an example of the expected JSON format (with generic placeholder content
 
 ```json
 {
-  "aiContextFile": "# Project Name\n\n## Overview\n[Project description and purpose]\n\n## Architecture\n[Architectural style and patterns]\n\n## Technology Stack\n- Framework 1 (version X.Y.Z)\n- Library 2 (version A.B.C)\n\n## Coding Style\n- [Style preference 1]\n- [Style preference 2]\n\n## Design Patterns\n- **Pattern Name**: [Where it's used and why]\n\n## Core Components\n### Component 1\n[Description and responsibilities]\n\n## Hotspots (High-Churn Files)\n- `path/to/file.ext` (churn score: XX) - [Why this file changes frequently]\n\n## Key Files\n- `path/to/important/file.ext` - [Purpose]\n\n## Recent Development Focus\n[Summary of recent development activity]\n"
+  "aiContextFile": "$AI_CONTEXT_DOCUMENTATION_TEMPLATE$"
 }
 ```
 

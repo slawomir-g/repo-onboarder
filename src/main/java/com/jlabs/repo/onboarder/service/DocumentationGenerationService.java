@@ -10,6 +10,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 
 
@@ -41,9 +43,11 @@ public class DocumentationGenerationService {
     public DocumentationResult generateDocumentation(GitReport report, Path repoRoot) {
         // Konstruuj prompt
         String promptText = promptConstructionService.constructPrompt(report, repoRoot);
+        saveDebugFile("prompt_debug.txt", promptText);
 
         // Wywołaj API przez ChatModelClient (retry i obsługa błędów są enkapsulowane w kliencie)
         String responseText = chatModelClient.call(promptText);
+        saveDebugFile("response_debug.txt", responseText);
 
         // Parsuj odpowiedź JSON
         return parseResponse(responseText);
@@ -111,6 +115,25 @@ public class DocumentationGenerationService {
 
         // Jeśli nie ma markdown code block, zwróć oryginalny tekst
         return trimmed;
+    }
+
+    /**
+     * Zapisuje zawartość do pliku w katalogu working_directory w celach debugowania.
+     * Metoda nie przerywa głównego flow w przypadku błędów - tylko loguje ostrzeżenia.
+     * 
+     * @param filename nazwa pliku do zapisania
+     * @param content zawartość do zapisania
+     */
+    private void saveDebugFile(String filename, String content) {
+        try {
+            Path appWorkingDir = Path.of(System.getProperty("user.dir"), "working_directory");
+            Files.createDirectories(appWorkingDir);
+            Path debugFile = appWorkingDir.resolve(filename);
+            Files.writeString(debugFile, content, StandardCharsets.UTF_8);
+            logger.debug("Zapisano plik debugowania: {}", debugFile);
+        } catch (Exception e) {
+            logger.warn("Nie udało się zapisać pliku debugowania {}: {}", filename, e.getMessage());
+        }
     }
 }
 

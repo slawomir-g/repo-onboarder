@@ -8,6 +8,7 @@ import org.springframework.ai.template.st.StTemplateRenderer;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -27,6 +28,7 @@ public class PromptConstructionService {
     private static final char PLACEHOLDER_TOKEN = '$';
     private static final String REPOSITORY_CONTEXT_TEMPLATE_PATH = "prompts/repository-context-payload-template.xml";
     private static final String AI_CONTEXT_PROMPT_TEMPLATE_PATH = "prompts/ai-context-prompt-template.md";
+    private static final String AI_CONTEXT_DOCUMENTATION_TEMPLATE_PATH = "prompts/ai-context-documentation-template.md";
     private static final DateTimeFormatter TIMESTAMP_FORMATTER = 
             DateTimeFormatter.ISO_INSTANT.withZone(ZoneOffset.UTC);
 
@@ -60,6 +62,8 @@ public class PromptConstructionService {
           
             String repositoryContextXml = preapreRepositoryContext(report, repoRoot);
             
+            String documentationTemplate = loadDocumentationTemplate();
+            
             PromptTemplate finalPromptTemplate = PromptTemplate.builder()
                     .renderer(StTemplateRenderer.builder()
                             .startDelimiterToken(PLACEHOLDER_TOKEN)
@@ -69,7 +73,8 @@ public class PromptConstructionService {
                     .build();
             
             String finalPrompt = finalPromptTemplate.render(Map.of(
-                    "REPOSITORY_CONTEXT_PAYLOAD_PLACEHOLDER", repositoryContextXml
+                    "REPOSITORY_CONTEXT_PAYLOAD_PLACEHOLDER", repositoryContextXml,
+                    "AI_CONTEXT_DOCUMENTATION_TEMPLATE", documentationTemplate
             ));
 
             return finalPrompt;
@@ -77,6 +82,12 @@ public class PromptConstructionService {
             throw new PromptConstructionException(
                     "Błąd podczas konstrukcji promptu: " + e.getMessage(), e);
         }
+    }
+
+
+    private String loadDocumentationTemplate() throws Exception {
+        ClassPathResource docTemplateResource = new ClassPathResource(AI_CONTEXT_DOCUMENTATION_TEMPLATE_PATH);
+        return docTemplateResource.getContentAsString(StandardCharsets.UTF_8);
     }
 
     private String preapreRepositoryContext(GitReport report, Path repoRoot) {
