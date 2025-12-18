@@ -572,41 +572,163 @@ Acceptance Criteria:
 
 ## 7. Implementation Status
 
-### 7.1 Current Progress (as of Dec 17, 2025)
+### 7.1 Current Progress (Updated: January 2025)
 
-The project has completed the **Core Logic Implementation** phase. The application can now perform a full end-to-end run via CLI, including repository cloning, analysis, and AI-powered documentation generation.
+The project has completed the **Core Logic Implementation** phase. The application currently operates as a **CLI application** using Spring Boot's `CommandLineRunner` interface. All core functionality for repository analysis and AI-powered documentation generation is fully implemented and working.
 
-#### Completed Features
+#### Completed Features ✅
+
 - **Git Operations Core:**
-  - Repository cloning and checkout mechanism.
-  - Full analysis (metadata, file tree, commits, hotspots).
-- **AI Integration (Fully Wired):**
-  - **Infrastructure Layer:** `ChatModelClient` (in `infrastructure.springai` package) encapsulates all low-level AI communication details:
-    - Spring AI `ChatModel` API calls
-    - Retry logic with exponential backoff using Spring Retry framework (`@Retryable` annotation)
-    - Error handling (rate limit, authentication errors)
-    - Conversion of `ChatResponse` to `String`
-    - Retry parameters configured via SpEL expressions reading from `AiProperties`
-  - **Service Layer:** `DocumentationGenerationService` focuses on high-level business logic:
-    - Prompt construction (delegated to `PromptConstructionService`)
+  - Repository cloning and checkout mechanism via JGit
+  - Full Git analysis pipeline:
+    - Metadata collection (`GitMetaCollector`)
+    - File structure analysis (`GitFileCollector`)
+    - Commit history analysis (`GitCommitCollector`) - last 12 months
+    - Hotspots identification (`GitHotspotsCollector`) - frequently modified files
+  - Support for public repositories via HTTPS
+  - Temporary working directory management
+
+- **AI Integration (Fully Implemented):**
+  - **Infrastructure Layer:** `ChatModelClient` (in `infrastructure.springai` package):
+    - Spring AI `ChatModel` API integration with Google Gemini 2.5 Pro
+    - Exponential backoff retry strategy using Spring Retry framework (`@Retryable` annotation)
+    - Comprehensive error handling:
+      - Rate limit errors (429) - excluded from retry, fail immediately
+      - Authentication errors - excluded from retry, fail immediately
+      - Transient errors - retry with exponential backoff
+    - Conversion of `ChatResponse` to `String` for business layer
+    - Retry parameters configurable via SpEL expressions reading from `AiProperties`
+    - Configurable retry limits (max attempts, initial delay, multiplier, max delay)
+  
+  - **Service Layer:** `DocumentationGenerationService`:
+    - High-level business logic for documentation generation
+    - Prompt construction delegated to `PromptConstructionService`
     - AI interaction via `ChatModelClient` (infrastructure abstraction)
     - JSON response parsing and validation
-    - Documentation result assembly
-  - **Prompting:** `PromptConstructionService` builds context-aware prompts.
-  - **Orchestration:** `GitCoreRunner` orchestrates the entire flow: Git Analysis -> Payload Generation -> AI Request -> File Output.
-  - **Output:** The application saves generated `README.md`, `ARCHITECTURE.md`, and `AI_CONTEXT_FILE.md` to disk.
-- **Data Collection:** All context payloads (`COMMIT_HISTORY`, `DIRECTORY_TREE`, `HOTSPOTS`, `SOURCE_CODE_CORPUS`) are generated.
-- **Configuration:** `GitCoreProperties` and `AiProperties` manage settings (limits, API keys, retries). `@EnableConfigurationProperties` configured in `OnboarderApplication`.
-- **Architecture:** Clear separation of concerns - infrastructure (`ChatModelClient`) separated from business logic (`DocumentationGenerationService`).
+    - Documentation result assembly (`DocumentationResult` model)
+  
+  - **Prompt Construction:** `PromptConstructionService`:
+    - Builds comprehensive context-aware prompts
+    - Incorporates project structure, source code corpus, dependency information, and Git hotspots
+    - Uses template-based prompt generation from resources
 
-#### In Progress / Pending
-- **Architecture Transition:** Refactoring from CLI (`CommandLineRunner`) to REST API (`@RestController`).
-- **REST API Endpoints:** Exposing `/analyze` and `/results` endpoints.
-- **Asynchronous Processing:** Implementing the job queue mechanism for the API.
+- **Documentation Generation:**
+  - Generates three types of documentation:
+    - `README.md` - Project overview, setup instructions, key information
+    - `ARCHITECTURE.md` - Detailed architecture description and design patterns
+    - `AI_CONTEXT_FILE.md` - Optimized context file for AI coding assistants
+  - All documentation saved to disk in `working_directory/` folder
+  - Markdown format with proper formatting
 
-#### Next Steps
-1. Create `RestController` to handle API requests.
-2. Refactor `GitCoreRunner` to be triggered by the controller (likely moving to an async service).
-3. Implement the Job ID tracking mechanism.
+- **Data Collection & Payload Generation:**
+  - All context payloads are generated and saved for debugging:
+    - `COMMIT_HISTORY_PAYLOAD.txt` - Git commit history
+    - `DIRECTORY_TREE_PAYLOAD.txt` - Repository file structure
+    - `HOTSPOTS_PAYLOAD.txt` - Frequently modified files analysis
+    - `SOURCE_CODE_CORPUS_PAYLOAD.txt` - Filtered source code content
+
+- **Configuration Management:**
+  - `GitCoreProperties` - Git repository settings, limits, output configuration
+  - `AiProperties` - AI model configuration, retry parameters, API key
+  - `@EnableConfigurationProperties` configured in `OnboarderApplication`
+  - YAML-based configuration via `application.yml` and `application-local.yml`
+  - Support for custom file exclusion patterns (via configuration)
+
+- **Error Handling:**
+  - Custom exception hierarchy:
+    - `AiException` - Base exception for AI-related errors
+    - `AiApiKeyException` - Missing or invalid API key
+    - `AiRateLimitException` - Rate limiting errors
+    - `AiResponseParseException` - JSON parsing failures
+    - `AiTimeoutException` - Timeout errors
+    - `PromptConstructionException` - Prompt building errors
+  - Graceful error handling throughout the pipeline
+
+- **Architecture:**
+  - Clear separation of concerns:
+    - Infrastructure layer (`infrastructure.springai`) - low-level AI communication
+    - Service layer (`service`) - business logic
+    - Git layer (`git`) - Git operations
+    - Model layer (`model`) - data structures
+  - Dependency injection via Spring Framework
+  - Service-oriented architecture
+
+- **CLI Interface:**
+  - Application runs via `CommandLineRunner` interface
+  - Configuration-driven repository URL (via `application.yml`)
+  - Console logging for progress tracking
+  - File-based output for generated documentation
+
+#### Not Implemented ❌
+
+- **REST API Layer:**
+  - No REST controllers implemented
+  - No `@RestController` classes exist
+  - No HTTP endpoints exposed
+
+- **Asynchronous Job Processing:**
+  - No job queue mechanism
+  - No job ID generation or tracking
+  - No job status management (PENDING, PROCESSING, COMPLETED, FAILED)
+  - No in-memory or persistent job storage
+
+- **API Endpoints:**
+  - `POST /analyze` - Not implemented
+  - `GET /results/{jobId}` - Not implemented
+  - No request/response DTOs for API
+
+- **Asynchronous Execution:**
+  - Current implementation is synchronous (blocks until completion)
+  - No background task execution
+  - No `@Async` or executor service configuration
+
+#### Current Architecture
+
+The application currently operates in **CLI mode**:
+1. Application starts via `OnboarderApplication.main()`
+2. `CommandLineRunner.run()` executes immediately on startup
+3. `GitCoreRunner.run()` orchestrates the full pipeline:
+   - Git repository cloning
+   - Git analysis (metadata, files, commits, hotspots)
+   - Prompt construction
+   - AI-powered documentation generation
+   - File output to disk
+4. Application terminates after completion
+
+#### Next Steps (Priority Order)
+
+1. **REST API Implementation:**
+   - Create `RestController` with `/analyze` and `/results/{jobId}` endpoints
+   - Define request/response DTOs
+   - Implement URL validation
+
+2. **Job Management System:**
+   - Design job model (Job ID, status, timestamps, result, error)
+   - Implement in-memory job storage (Map-based for MVP)
+   - Generate unique job IDs (UUID-based)
+
+3. **Asynchronous Processing:**
+   - Refactor `GitCoreRunner` to be callable from service layer
+   - Implement `@Async` method for background execution
+   - Configure `ThreadPoolTaskExecutor` for async processing
+   - Update job status throughout processing lifecycle
+
+4. **Remove CLI Dependency:**
+   - Remove `CommandLineRunner` interface from `OnboarderApplication`
+   - Make application run as a web server (keep running, not terminate)
+   - Ensure application stays alive to serve API requests
+
+5. **Error Handling for API:**
+   - Map exceptions to appropriate HTTP status codes
+   - Return structured error responses
+   - Update job status to FAILED on errors
+
+#### Technical Debt / Future Considerations
+
+- Consider persistent job storage (database) for production use
+- Add job expiration/cleanup mechanism for old jobs
+- Implement job cancellation capability
+- Add rate limiting for API endpoints
+- Consider WebSocket support for real-time progress updates (out of scope for MVP)
 
 

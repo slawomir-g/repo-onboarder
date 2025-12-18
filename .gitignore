@@ -39,3 +39,5 @@ out/
 /working_directory/*
 
 src/main/resources/application-local.yml
+
+repo-work
