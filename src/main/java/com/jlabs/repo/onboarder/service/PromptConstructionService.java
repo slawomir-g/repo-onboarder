@@ -2,15 +2,16 @@ package com.jlabs.repo.onboarder.service;
 
 import com.jlabs.repo.onboarder.markdown.*;
 import com.jlabs.repo.onboarder.model.GitReport;
+import com.jlabs.repo.onboarder.service.exceptions.PromptConstructionException;
+import org.springframework.ai.chat.prompt.PromptTemplate;
+import org.springframework.ai.template.st.StTemplateRenderer;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StreamUtils;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.Map;
 
 /**
  * Serwis odpowiedzialny za konstrukcję promptu dla AI modelu.
@@ -23,6 +24,7 @@ import java.time.format.DateTimeFormatter;
 @Service
 public class PromptConstructionService {
 
+    private static final char PLACEHOLDER_TOKEN = '$';
     private static final String REPOSITORY_CONTEXT_TEMPLATE_PATH = "prompts/repository-context-payload-template.xml";
     private static final String AI_CONTEXT_PROMPT_TEMPLATE_PATH = "prompts/ai-context-prompt-template.md";
     private static final DateTimeFormatter TIMESTAMP_FORMATTER = 
@@ -46,6 +48,7 @@ public class PromptConstructionService {
 
     /**
      * Konstruuje finalny prompt dla AI modelu na podstawie GitReport i repozytorium.
+     * Używa PromptTemplate z Spring AI do bezpiecznego i profesjonalnego zarządzania template'ami.
      * 
      * @param report raport z analizy Git repozytorium
      * @param repoRoot ścieżka do katalogu głównego repozytorium
@@ -54,61 +57,55 @@ public class PromptConstructionService {
      */
     public String constructPrompt(GitReport report, Path repoRoot) {
         try {
-            // Wczytaj template'y z resources
-            String repositoryContextTemplate = loadTemplate(REPOSITORY_CONTEXT_TEMPLATE_PATH);
-            String aiContextPromptTemplate = loadTemplate(AI_CONTEXT_PROMPT_TEMPLATE_PATH);
-
-            // Wygeneruj payloady używając metod generate() z PayloadWriter
-            String directoryTreePayload = directoryTreePayloadWriter.generate(report);
-            String hotspotsPayload = hotspotsPayloadWriter.generate(report);
-            String commitHistoryPayload = commitHistoryPayloadWriter.generate(report);
-            String sourceCodeCorpusPayload = sourceCodeCorpusPayloadWriter.generate(report, repoRoot);
-
-            // Wyciągnij nazwę projektu z URL (np. "repo-onboarder" z "https://github.com/user/repo-onboarder.git")
-            String projectName = extractProjectName(report.repo.url);
-
-            // Wypełnij placeholdery w XML template
-            String repositoryContextXml = repositoryContextTemplate
-                    .replace("{PROJECT_NAME_PAYLOAD_PLACEHOLDER}", projectName)
-                    .replace("{ANALYSIS_TIMESTAMP_PAYLOAD_PLACEHOLDER}", 
-                            TIMESTAMP_FORMATTER.format(report.generatedAt))
-                    .replace("{BRANCH_PAYLOAD_PLACEHOLDER}", 
-                            report.repo.branch != null ? report.repo.branch : "main")
-                    .replace("{DIRECTORY_TREE_PAYLOAD_PLACEHOLDER}", directoryTreePayload)
-                    .replace("{HOTSPOTS_PAYLOAD_PLACEHOLDER}", hotspotsPayload)
-                    .replace("{COMMIT_HISTORY_PAYLOAD_PLACEHOLDER}", commitHistoryPayload)
-                    .replace("{SOURCE_CODE_CORPUS_PAYLOAD_PLACEHOLDER}", sourceCodeCorpusPayload);
-
-            // Wypełnij placeholder w prompt template
-            String finalPrompt = aiContextPromptTemplate
-                    .replace("{REPOSITORY_CONTEXT_PAYLOAD_PLACEHOLDER}", repositoryContextXml);
+          
+            String repositoryContextXml = preapreRepositoryContext(report, repoRoot);
+            
+            PromptTemplate finalPromptTemplate = PromptTemplate.builder()
+                    .renderer(StTemplateRenderer.builder()
+                            .startDelimiterToken(PLACEHOLDER_TOKEN)
+                            .endDelimiterToken(PLACEHOLDER_TOKEN)
+                            .build())
+                    .resource(new ClassPathResource(AI_CONTEXT_PROMPT_TEMPLATE_PATH))
+                    .build();
+            
+            String finalPrompt = finalPromptTemplate.render(Map.of(
+                    "REPOSITORY_CONTEXT_PAYLOAD_PLACEHOLDER", repositoryContextXml
+            ));
 
             return finalPrompt;
-
-        } catch (IOException e) {
-            throw new PromptConstructionException(
-                    "Nie można wczytać template'ów z resources: " + e.getMessage(), e);
         } catch (Exception e) {
             throw new PromptConstructionException(
                     "Błąd podczas konstrukcji promptu: " + e.getMessage(), e);
         }
     }
 
-    /**
-     * Wczytuje template z resources jako String.
-     * 
-     * @param resourcePath ścieżka do zasobu w classpath (np. "prompts/template.xml")
-     * @return zawartość pliku jako String
-     * @throws IOException gdy nie można wczytać pliku
-     */
-    private String loadTemplate(String resourcePath) throws IOException {
-        ClassPathResource resource = new ClassPathResource(resourcePath);
-        if (!resource.exists()) {
-            throw new IOException("Template nie istnieje: " + resourcePath);
-        }
-        try (var inputStream = resource.getInputStream()) {
-            return StreamUtils.copyToString(inputStream, StandardCharsets.UTF_8);
-        }
+    private String preapreRepositoryContext(GitReport report, Path repoRoot) {
+        String directoryTreePayload = directoryTreePayloadWriter.generate(report);
+        String hotspotsPayload = hotspotsPayloadWriter.generate(report);
+        String commitHistoryPayload = commitHistoryPayloadWriter.generate(report);
+        String sourceCodeCorpusPayload = sourceCodeCorpusPayloadWriter.generate(report, repoRoot);
+        String projectName = extractProjectName(report.repo.url);
+
+        PromptTemplate repositoryContextTemplate = PromptTemplate.builder()
+                .renderer(StTemplateRenderer.builder()
+                            .startDelimiterToken(PLACEHOLDER_TOKEN)
+                        .endDelimiterToken(PLACEHOLDER_TOKEN)
+                        .build())
+                .resource(new ClassPathResource(REPOSITORY_CONTEXT_TEMPLATE_PATH))
+                .build();
+        
+        String repositoryContextXml = repositoryContextTemplate.render(Map.of(
+                "PROJECT_NAME_PAYLOAD_PLACEHOLDER", projectName,
+                "ANALYSIS_TIMESTAMP_PAYLOAD_PLACEHOLDER", 
+                        TIMESTAMP_FORMATTER.format(report.generatedAt),
+                "BRANCH_PAYLOAD_PLACEHOLDER", 
+                        report.repo.branch != null ? report.repo.branch : "main",
+                "DIRECTORY_TREE_PAYLOAD_PLACEHOLDER", directoryTreePayload,
+                "HOTSPOTS_PAYLOAD_PLACEHOLDER", hotspotsPayload,
+                "COMMIT_HISTORY_PAYLOAD_PLACEHOLDER", commitHistoryPayload,
+                "SOURCE_CODE_CORPUS_PAYLOAD_PLACEHOLDER", sourceCodeCorpusPayload
+        ));
+        return repositoryContextXml;
     }
 
     /**
@@ -136,19 +133,6 @@ public class PromptConstructionService {
         }
 
         return "unknown-project";
-    }
-
-    /**
-     * Wyjątek rzucany gdy wystąpi błąd podczas konstrukcji promptu.
-     */
-    public static class PromptConstructionException extends RuntimeException {
-        public PromptConstructionException(String message) {
-            super(message);
-        }
-
-        public PromptConstructionException(String message, Throwable cause) {
-            super(message, cause);
-        }
     }
 }
 

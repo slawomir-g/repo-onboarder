@@ -12,7 +12,7 @@ The input is provided in a strict XML format wrapped in <repository_context>.
 - `<source_code_corpus>`: The actual content of key files.
 
 # Input Payload
-{REPOSITORY_CONTEXT_PAYLOAD_PLACEHOLDER}
+$REPOSITORY_CONTEXT_PAYLOAD_PLACEHOLDER$
 
 # Instructions
 Based *strictly* on the XML data above:
