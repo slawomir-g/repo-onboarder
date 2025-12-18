@@ -85,6 +85,67 @@ public class PromptConstructionService {
     }
 
 
+    /**
+     * Konstruuje prompt dla AI modelu wykorzystując cached content.
+     * 
+     * Cached content zawiera już repository context XML, więc tutaj budujemy tylko
+     * prompt z AI documentation template i instrukcjami. Cached content zostanie
+     * automatycznie dołączony jako system instruction przez Google GenAI API.
+     * 
+     * @param cachedContentName nazwa cached content do użycia
+     * @return prompt jako String (tylko AI documentation template, bez repository context)
+     * @throws PromptConstructionException gdy nie można wczytać template'ów
+     */
+    public String constructPromptWithCache(String cachedContentName) {
+        try {
+            // Gdy używamy cached content, nie musimy dołączać repository context do promptu
+            // - jest już w cache jako system instruction. Tutaj budujemy tylko 
+            // instrukcje dla AI co ma wygenerować.
+            String documentationTemplate = loadDocumentationTemplate();
+            
+            // Utwórz uproszczony prompt - cached content zawiera już repository context
+            PromptTemplate simplePromptTemplate = PromptTemplate.builder()
+                    .renderer(StTemplateRenderer.builder()
+                            .startDelimiterToken(PLACEHOLDER_TOKEN)
+                            .endDelimiterToken(PLACEHOLDER_TOKEN)
+                            .build())
+                    .resource(new ClassPathResource(AI_CONTEXT_PROMPT_TEMPLATE_PATH))
+                    .build();
+            
+            // W prompt template używamy placeholdera, ale zamiast pełnego XML 
+            // podajemy tylko informację że kontekst jest w cache
+            String cacheInfo = String.format(
+                    "<cached_repository_context name=\"%s\">\n" +
+                    "Repository context is available in cached content.\n" +
+                    "</cached_repository_context>", 
+                    cachedContentName);
+            
+            return simplePromptTemplate.render(Map.of(
+                    "REPOSITORY_CONTEXT_PAYLOAD_PLACEHOLDER", cacheInfo,
+                    "AI_CONTEXT_DOCUMENTATION_TEMPLATE", documentationTemplate
+            ));
+            
+        } catch (Exception e) {
+            throw new PromptConstructionException(
+                    "Błąd podczas konstrukcji promptu z cached content: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Przygotowuje XML z kontekstem repozytorium (directory tree, hotspots, commits, source code).
+     * 
+     * Ta metoda jest używana do:
+     * 1. Tworzenia cached content (XML jest zapisywany w cache po stronie Google)
+     * 2. Tworzenia pełnego promptu gdy cache nie istnieje
+     * 
+     * @param report raport z analizy Git repozytorium
+     * @param repoRoot ścieżka do katalogu głównego repozytorium
+     * @return XML z pełnym kontekstem repozytorium
+     */
+    public String prepareRepositoryContext(GitReport report, Path repoRoot) {
+        return preapreRepositoryContext(report, repoRoot);
+    }
+
     private String loadDocumentationTemplate() throws Exception {
         ClassPathResource docTemplateResource = new ClassPathResource(AI_CONTEXT_DOCUMENTATION_TEMPLATE_PATH);
         return docTemplateResource.getContentAsString(StandardCharsets.UTF_8);

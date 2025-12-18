@@ -2,6 +2,8 @@ package com.jlabs.repo.onboarder.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.time.Duration;
+
 /**
  * Konfiguracja właściwości dla integracji z Spring AI i Google Gemini API.
  * Właściwości są ładowane z application.yml z prefiksem "spring.ai.google.genai".
@@ -88,6 +90,16 @@ public class AiProperties {
              * Domyślnie: 8192
              */
             private Integer maxOutputTokens = 8192;
+
+            private Duration repositoryCacheTtl = Duration.ofHours(1);
+
+            public Duration getRepositoryCacheTtl() {
+                return repositoryCacheTtl;
+            }
+        
+            public void setRepositoryCacheTtl(Duration ttl) {
+                this.repositoryCacheTtl = ttl;
+            }
 
             public String getModel() {
                 return model;

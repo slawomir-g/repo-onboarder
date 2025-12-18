@@ -26,6 +26,9 @@ public class SourceCodeCorpusPayloadWriter {
         StringBuilder sb = new StringBuilder();
 
         for (String relativePath : report.allFilesAtHead) {
+            if (relativePath.contains("test")) {
+                continue;
+            }
             Path file = repoRoot.resolve(relativePath);
 
             if (!Files.isRegularFile(file)) {

@@ -91,11 +91,13 @@ You must follow these rules strictly:
 
 After completing your analysis in the thinking block, generate a JSON object with the following structure:
 
+<output_template>
 ```json
 {
   "aiContextFile": "Your markdown-formatted documentation string here..."
 }
 ```
+</output_template>
 
 The `aiContextFile` value must be a markdown-formatted string optimized for machine reading by AI agents. It should include:
 
@@ -113,10 +115,12 @@ The `aiContextFile` value must be a markdown-formatted string optimized for mach
 
 Here is an example of the expected JSON format (with generic placeholder content):
 
+<output_example>
 ```json
 {
   "aiContextFile": "$AI_CONTEXT_DOCUMENTATION_TEMPLATE$"
 }
 ```
+</output_example>
 
 Begin your analysis now. Your final output should consist only of the JSON object and should not duplicate or rehash any of the analysis work you did in the thinking block.

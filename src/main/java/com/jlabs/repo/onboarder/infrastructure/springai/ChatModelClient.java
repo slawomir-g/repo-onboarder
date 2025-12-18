@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
+import org.springframework.ai.google.genai.GoogleGenAiChatOptions;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
@@ -67,14 +68,52 @@ public class ChatModelClient {
             )
     )
     public String call(String promptText) {
-        logger.debug("Wywołanie API Gemini");
+        return call(promptText, null);
+    }
+
+    /**
+     * Wywołuje API z dodatkowymi opcjami (np. cached content) i exponential backoff retry strategy.
+     * 
+     * Ta metoda pozwala na przekazanie dodatkowych opcji do wywołania API, takich jak:
+     * - Cached content name (dla wykorzystania cache'owanych kontekstów)
+     * - Custom model settings
+     * - Inne opcje specyficzne dla Google GenAI
+     * 
+     * @param promptText tekst promptu do wysłania
+     * @param options opcje wywołania API (może być null dla domyślnych ustawień)
+     * @return odpowiedź tekstowa z API
+     * @throws AiException gdy wyczerpano wszystkie próby retry
+     * @throws AiRateLimitException gdy wystąpi rate limiting (nie retryowane)
+     * @throws AiApiKeyException gdy wystąpi błąd autoryzacji (nie retryowane)
+     */
+    @Retryable(
+            maxAttemptsExpression = "#{@aiProperties.retry.maxAttempts}",
+            noRetryFor = {AiRateLimitException.class, AiApiKeyException.class},
+            backoff = @Backoff(
+                    delayExpression = "#{@aiProperties.retry.initialDelayMs}",
+                    multiplierExpression = "#{@aiProperties.retry.multiplier}",
+                    maxDelayExpression = "#{@aiProperties.retry.maxDelayMs}"
+            )
+    )
+    public String call(String promptText, GoogleGenAiChatOptions options) {
+        logger.debug("Wywołanie API Gemini" + (options != null ? " z opcjami" : ""));
 
         try {
             // Szacuj i loguj informacje o promptcie przed wysłaniem
             long estimatedTokens = logPromptTokenEstimation(promptText);
             
-            // Utwórz prompt i wywołaj model
-            Prompt prompt = new Prompt(promptText);
+            // Utwórz prompt z opcjami jeśli zostały przekazane
+            Prompt prompt;
+            if (options != null) {
+                prompt = new Prompt(promptText, options);
+                
+                // Loguj informacje o używaniu cached content
+                if (options.getUseCachedContent() != null && options.getUseCachedContent()) {
+                    logger.info("Używanie cached content: {}", options.getCachedContentName());
+                }
+            } else {
+                prompt = new Prompt(promptText);
+            }
             
             ChatResponse response = chatModel.call(prompt);
             
@@ -108,10 +147,11 @@ public class ChatModelClient {
      * 
      * @param e ostatni wyjątek który wystąpił
      * @param promptText tekst promptu który był wywoływany
+     * @param options opcje wywołania API (może być null)
      * @throws AiException zawsze rzuca wyjątek z informacją o nieudanych próbach
      */
     @Recover
-    public String recover(AiException e, String promptText) {
+    public String recover(AiException e, String promptText, GoogleGenAiChatOptions options) {
         AiProperties.Retry retryConfig = aiProperties.getRetry();
         int maxAttempts = retryConfig.getMaxAttempts();
         logger.error("Nie udało się wywołać API po {} próbach", maxAttempts, e);

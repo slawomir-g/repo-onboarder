@@ -10,15 +10,19 @@ spring:
             genai:
                 api-key: ""  # Wymagany: klucz API Google Gemini
                 chat:
+                    enable-cached-content: true  # Włącz wsparcie dla cached content
+
                     options:
-                        model: "gemini-2.5-pro"  # Model Gemini do użycia
+                        model: "gemini-3-pro-preview"  # Model Gemini do użycia
                         temperature: 0.7        # Temperatura odpowiedzi (0.0-1.0)
                         max-output-tokens: 20000  # Maksymalna liczba tokenów w odpowiedzi
+                        repository-cache-ttl: "PT1H" 
                 retry:
                     max-attempts: 3              # Maksymalna liczba prób retry
                     initial-delay-ms: 1000      # Początkowe opóźnienie w ms
                     multiplier: 2.0              # Mnożnik dla exponential backoff
                     max-delay-ms: 30000         # Maksymalne opóźnienie w ms
+
 
 git-core:
     repoUrl: "https://github.com/3redronin/mu-server.git"
