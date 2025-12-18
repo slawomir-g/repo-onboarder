@@ -24,7 +24,7 @@ Based *strictly* on the XML data above:
 # Output Format
 Return a valid JSON object matching this schema:
 {
-  "ai_context_file": "Markdown string optimized for machine reading..."
+  "aiContextFile": "Markdown string optimized for machine reading..."
 }
 
 Warning: Do not fabricate files not present in `<source_code_corpus>`. If a file is missing, assume it is standard/boilerplate.

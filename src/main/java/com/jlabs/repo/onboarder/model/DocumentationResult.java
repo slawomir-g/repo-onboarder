@@ -1,5 +1,7 @@
 package com.jlabs.repo.onboarder.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 /**
  * Model danych reprezentujący wynik generacji dokumentacji przez AI.
  * Zawiera trzy typy dokumentacji zgodnie z PRD:
@@ -7,6 +9,7 @@ package com.jlabs.repo.onboarder.model;
  * - Architecture Documentation - szczegółowy opis architektury
  * - Context File - zoptymalizowany plik kontekstu dla AI agentów
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class DocumentationResult {
 
     /**
@@ -25,15 +28,15 @@ public class DocumentationResult {
      * Plik kontekstu zoptymalizowany dla AI coding assistants.
      * Zawiera strukturę projektu, konwencje kodowania i kluczowe informacje.
      */
-    private String contextFile;
+    private String aiContextFile;
 
     public DocumentationResult() {
     }
 
-    public DocumentationResult(String readme, String architecture, String contextFile) {
+    public DocumentationResult(String readme, String architecture, String aiContextFile) {
         this.readme = readme;
         this.architecture = architecture;
-        this.contextFile = contextFile;
+        this.aiContextFile = aiContextFile;
     }
 
     public String getReadme() {
@@ -52,12 +55,12 @@ public class DocumentationResult {
         this.architecture = architecture;
     }
 
-    public String getContextFile() {
-        return contextFile;
+    public String getAiContextFile() {
+        return aiContextFile;
     }
 
-    public void setContextFile(String contextFile) {
-        this.contextFile = contextFile;
+    public void setAiContextFile(String contextFile) {
+        this.aiContextFile = contextFile;
     }
 }
 

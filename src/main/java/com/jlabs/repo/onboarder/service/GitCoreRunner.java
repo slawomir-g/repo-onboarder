@@ -155,9 +155,9 @@ public class GitCoreRunner {
         }
 
         // Zapisz AI_CONTEXT_FILE.md
-        if (result.getContextFile() != null && !result.getContextFile().isBlank()) {
+        if (result.getAiContextFile() != null && !result.getAiContextFile().isBlank()) {
             Path contextFile = outputDir.resolve("AI_CONTEXT_FILE.md");
-            Files.writeString(contextFile, result.getContextFile(), StandardCharsets.UTF_8);
+            Files.writeString(contextFile, result.getAiContextFile(), StandardCharsets.UTF_8);
         }
     }
 }

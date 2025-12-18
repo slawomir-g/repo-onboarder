@@ -1,6 +1,5 @@
 package com.jlabs.repo.onboarder.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jlabs.repo.onboarder.infrastructure.springai.ChatModelClient;
 import com.jlabs.repo.onboarder.model.DocumentationResult;
@@ -13,17 +12,7 @@ import org.springframework.stereotype.Service;
 
 import java.nio.file.Path;
 
-/**
- * Serwis odpowiedzialny za generację dokumentacji przy użyciu AI modelu.
- * Skupia się na wysokopoziomowej logice biznesowej: konstruowaniu promptów,
- * wywoływaniu AI przez ChatModelClient i parsowaniu odpowiedzi JSON.
- * 
- * Zgodnie z PRD:
- * - Parsuje odpowiedzi JSON z modelu
- * - Generuje trzy typy dokumentacji: README, Architecture, Context File
- * 
- * Szczegóły komunikacji z AI (retry, obsługa błędów) są enkapsulowane w ChatModelClient.
- */
+
 @Service
 public class DocumentationGenerationService {
 
@@ -73,75 +62,12 @@ public class DocumentationGenerationService {
         try {
             // Usuń markdown code block jeśli istnieje (```json ... ```)
             String cleanedJson = extractJsonFromMarkdown(responseText);
-            
-            // Spróbuj sparsować JSON
-            JsonNode jsonNode = objectMapper.readTree(cleanedJson);
-
-            // Wyciągnij pola z JSON
-            // Zgodnie z template promptu, odpowiedź może zawierać "ai_context_file"
-            // Ale PRD wymaga trzech pól: readme, architecture, contextFile
-            // Dla MVP, jeśli jest tylko "ai_context_file", użyjemy go jako contextFile
-            String readme = extractField(jsonNode, "readme");
-            String architecture = extractField(jsonNode, "architecture");
-            String contextFile = extractField(jsonNode, "contextFile");
-
-            // Jeśli nie ma standardowych pól, sprawdź czy jest "ai_context_file" (z template)
-            if (contextFile == null || contextFile.isBlank()) {
-                contextFile = extractField(jsonNode, "ai_context_file");
-            }
-
-            // Walidacja - przynajmniej jedno pole musi być wypełnione
-            if ((readme == null || readme.isBlank()) && 
-                (architecture == null || architecture.isBlank()) && 
-                (contextFile == null || contextFile.isBlank())) {
-                throw new AiResponseParseException(
-                        "Odpowiedź JSON nie zawiera wymaganych pól (readme, architecture, contextFile)");
-            }
-
-            return new DocumentationResult(
-                    readme != null ? readme : "",
-                    architecture != null ? architecture : "",
-                    contextFile != null ? contextFile : ""
-            );
+            return objectMapper.readValue(cleanedJson, DocumentationResult.class);
 
         } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
             throw new AiResponseParseException(
                     "Nie można sparsować odpowiedzi JSON z API: " + e.getMessage(), e);
         }
-    }
-
-    /**
-     * Wyciąga pole z JSON node, obsługując różne formaty (tekst, obiekt z "content", etc.).
-     * 
-     * @param jsonNode node JSON
-     * @param fieldName nazwa pola
-     * @return wartość pola jako String lub null jeśli nie istnieje
-     */
-    private String extractField(JsonNode jsonNode, String fieldName) {
-        JsonNode fieldNode = jsonNode.get(fieldName);
-        if (fieldNode == null || fieldNode.isNull()) {
-            return null;
-        }
-
-        // Jeśli to tekst, zwróć bezpośrednio
-        if (fieldNode.isTextual()) {
-            return fieldNode.asText();
-        }
-
-        // Jeśli to obiekt, spróbuj wyciągnąć "content" lub "text"
-        if (fieldNode.isObject()) {
-            JsonNode contentNode = fieldNode.get("content");
-            if (contentNode != null && contentNode.isTextual()) {
-                return contentNode.asText();
-            }
-            JsonNode textNode = fieldNode.get("text");
-            if (textNode != null && textNode.isTextual()) {
-                return textNode.asText();
-            }
-        }
-
-        // W przeciwnym razie, użyj toString()
-        return fieldNode.toString();
     }
 
     /**

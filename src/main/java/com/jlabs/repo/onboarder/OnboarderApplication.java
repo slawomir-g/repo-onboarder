@@ -41,7 +41,7 @@ public class OnboarderApplication implements CommandLineRunner {
             logger.debug("Architecture długość: {} znaków", 
                     result.getArchitecture() != null ? result.getArchitecture().length() : 0);
             logger.debug("Context File długość: {} znaków", 
-                    result.getContextFile() != null ? result.getContextFile().length() : 0);
+                    result.getAiContextFile() != null ? result.getAiContextFile().length() : 0);
             
             // W przyszłości tutaj będzie zwrot do REST API
             
