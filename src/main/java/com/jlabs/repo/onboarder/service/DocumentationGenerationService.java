@@ -1,11 +1,9 @@
 package com.jlabs.repo.onboarder.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jlabs.repo.onboarder.config.AiProperties;
 import com.jlabs.repo.onboarder.infrastructure.springai.ChatModelClient;
 import com.jlabs.repo.onboarder.model.DocumentationResult;
 import com.jlabs.repo.onboarder.model.GitReport;
-import com.jlabs.repo.onboarder.service.exceptions.AiResponseParseException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,19 +25,16 @@ public class DocumentationGenerationService {
     private final PromptConstructionService promptConstructionService;
     private final RepositoryCacheService repositoryCacheService;
     private final AiProperties aiProperties;
-    private final ObjectMapper objectMapper;
 
     public DocumentationGenerationService(
             ChatModelClient chatModelClient,
             PromptConstructionService promptConstructionService,
             RepositoryCacheService repositoryCacheService,
-            AiProperties aiProperties,
-            ObjectMapper objectMapper) {
+            AiProperties aiProperties) {
         this.chatModelClient = chatModelClient;
         this.promptConstructionService = promptConstructionService;
         this.repositoryCacheService = repositoryCacheService;
         this.aiProperties = aiProperties;
-        this.objectMapper = objectMapper;
     }
 
     /**
@@ -126,66 +121,53 @@ public class DocumentationGenerationService {
     }
 
     /**
-     * Parsuje odpowiedź JSON z API i tworzy DocumentationResult.
-     * Zgodnie z PRD, odpowiedź powinna zawierać pola: readme, architecture, contextFile.
-     * Obsługuje odpowiedzi zawierające JSON w markdown code block (```json ... ```).
+     * Parsuje odpowiedź z API i tworzy DocumentationResult.
+     * Zgodnie z nowymi wymaganiami, odpowiedź jest czystym tekstem Markdown.
      * 
-     * @param responseText tekst odpowiedzi z API (może zawierać JSON w markdown code block)
-     * @return sparsowany DocumentationResult
-     * @throws AiResponseParseException gdy nie można sparsować JSON lub brakuje wymaganych pól
+     * @param responseText tekst odpowiedzi z API
+     * @return DocumentationResult z wypełnionym polem aiContextFile
      */
     private DocumentationResult parseResponse(String responseText) {
-        try {
-            // Usuń markdown code block jeśli istnieje (```json ... ```)
-            String cleanedJson = extractJsonFromMarkdown(responseText);
-            return objectMapper.readValue(cleanedJson, DocumentationResult.class);
-
-        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
-            throw new AiResponseParseException(
-                    "Nie można sparsować odpowiedzi JSON z API: " + e.getMessage(), e);
-        }
+        // Usuń markdown code block jeśli model go dodał (np. ```markdown ... ```)
+        String cleanedContent = extractMarkdownFromCodeBlock(responseText);
+        
+        DocumentationResult result = new DocumentationResult();
+        result.setAiContextFile(cleanedContent);
+        // Pola readme i architecture pozostają puste, ponieważ obecnie generujemy 
+        // tylko skonsolidowany plik kontekstu AI.
+        
+        return result;
     }
 
     /**
-     * Wyciąga JSON z markdown code block jeśli jest opakowany w ```json ... ```.
-     * Jeśli odpowiedź nie zawiera markdown code block, zwraca oryginalny tekst.
+     * Wyciąga czystą treść z bloku kodu markdown, jeśli odpowiedź została w niego opakowana.
+     * Obsługuje bloki typu ```markdown, ``` lub po prostu zwraca tekst, jeśli nie ma bloków.
      * 
      * @param responseText tekst odpowiedzi z API
-     * @return wyczyszczony JSON bez markdown code block
+     * @return wyczyszczona treść markdown
      */
-    private String extractJsonFromMarkdown(String responseText) {
+    private String extractMarkdownFromCodeBlock(String responseText) {
         if (responseText == null || responseText.isBlank()) {
             return responseText;
         }
 
-        // Usuń białe znaki na początku i końcu
         String trimmed = responseText.trim();
 
-        // Sprawdź czy zaczyna się od ```json lub ```
-        if (trimmed.startsWith("```json")) {
-            // Znajdź początek JSON (po ```json)
-            int jsonStart = trimmed.indexOf("```json") + 7;
-            // Znajdź koniec (```)
-            int jsonEnd = trimmed.lastIndexOf("```");
-            
-            if (jsonEnd > jsonStart) {
-                String jsonContent = trimmed.substring(jsonStart, jsonEnd).trim();
-                logger.debug("Wyciągnięto JSON z markdown code block, długość: {} znaków", jsonContent.length());
-                return jsonContent;
-            }
-        } else if (trimmed.startsWith("```")) {
-            // Obsługa przypadku gdy jest tylko ``` bez json
-            int jsonStart = trimmed.indexOf("```") + 3;
-            int jsonEnd = trimmed.lastIndexOf("```");
-            
-            if (jsonEnd > jsonStart) {
-                String jsonContent = trimmed.substring(jsonStart, jsonEnd).trim();
-                logger.debug("Wyciągnięto JSON z markdown code block (bez json), długość: {} znaków", jsonContent.length());
-                return jsonContent;
+        // Sprawdź czy zaczyna się od ```markdown, ```json lub po prostu ```
+        String[] prefixes = {"```markdown", "```json", "```"};
+        for (String prefix : prefixes) {
+            if (trimmed.startsWith(prefix)) {
+                int start = trimmed.indexOf(prefix) + prefix.length();
+                int end = trimmed.lastIndexOf("```");
+                
+                if (end > start) {
+                    String content = trimmed.substring(start, end).trim();
+                    logger.debug("Wyciągnięto treść z bloku kodu {}, długość: {} znaków", prefix, content.length());
+                    return content;
+                }
             }
         }
 
-        // Jeśli nie ma markdown code block, zwróć oryginalny tekst
         return trimmed;
     }
 

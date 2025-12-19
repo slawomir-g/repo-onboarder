@@ -18,6 +18,10 @@ import org.springframework.stereotype.Component;
 
 import org.springframework.ai.chat.metadata.Usage;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.Optional;
+
 /**
  * Klient infrastrukturalny odpowiedzialny za komunikację z Spring AI ChatModel.
  * Enkapsuluje wszystkie niskopoziomowe szczegóły komunikacji z AI, w tym:
@@ -251,49 +255,21 @@ public class ChatModelClient {
                 return;
             }
 
-            var promptTokens = usage.getPromptTokens();
-            var completionTokens = getCompletionTokens(usage);
             var totalTokens = usage.getTotalTokens();
+            if(usage.getNativeUsage() instanceof com.google.genai.types.GenerateContentResponseUsageMetadata) {
+                var nativeUsage = (com.google.genai.types.GenerateContentResponseUsageMetadata) usage.getNativeUsage();
+                var cachedTokens = nativeUsage.cachedContentTokenCount().orElse(0);
+                Long paidTokens = (long) totalTokens - cachedTokens;
 
-            logger.info("Rzeczywista liczba tokenów z API - Input: {}, Output: {}, Total: {} (szacowane: ~{})",
-                    formatTokenCount(promptTokens),
-                    formatTokenCount(completionTokens),
-                    formatTokenCount(totalTokens),
-                    estimatedTokens);
-
-            if (promptTokens != null && estimatedTokens > 0) {
-                double ratio = (double) promptTokens / estimatedTokens;
-                logger.debug("Stosunek rzeczywistych/szacowanych tokenów: {:.2f}", ratio);
+                logger.info("Total tokens: {}", totalTokens);
+                logger.info("Cached tokens: {}", cachedTokens);
+                logger.info("Płatne tokeny: {}", paidTokens);
+            } else {
+                logger.info("Nie udało się odczytać informacji o tokenach z metadata");
             }
         } catch (Exception e) {
             logger.debug("Nie udało się odczytać informacji o tokenach z metadata: {}", e.getMessage());
         }
-    }
-
-    /**
-     * Konwertuje Number na Long, zwraca null jeśli wartość jest null.
-     */
-    private Long toLong(Number number) {
-        return number != null ? number.longValue() : null;
-    }
-
-    /**
-     * Pobiera liczbę tokenów completion z Usage, obsługując różne wersje Spring AI.
-     */
-    private Long getCompletionTokens(org.springframework.ai.chat.metadata.Usage usage) {
-        try {
-            return toLong(usage.getCompletionTokens());
-        } catch (Exception e) {
-            logger.debug("getCompletionTokens() nie dostępne: {}", e.getMessage());
-            return null;
-        }
-    }
-
-    /**
-     * Formatuje liczbę tokenów do wyświetlenia w logach.
-     */
-    private String formatTokenCount(Number count) {
-        return count != null ? count.toString() : "N/A";
     }
 
     /**

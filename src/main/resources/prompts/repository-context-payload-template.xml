@@ -1,4 +1,4 @@
-<repository_context version="1.0">
+<repository_context>
     <metadata>
         <project_name>$PROJECT_NAME_PAYLOAD_PLACEHOLDER$</project_name>
         <analysis_timestamp>$ANALYSIS_TIMESTAMP_PAYLOAD_PLACEHOLDER$</analysis_timestamp>

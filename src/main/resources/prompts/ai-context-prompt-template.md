@@ -2,9 +2,7 @@ You are an expert Software Architect and Technical Writer. Your task is to analy
 
 Here is the repository context data you need to analyze:
 
-<repository_context>
 $REPOSITORY_CONTEXT_PAYLOAD_PLACEHOLDER$
-</repository_context>
 
 ## Understanding the Repository Context Structure
 
@@ -19,7 +17,7 @@ The XML above contains four main sections:
 
 ## Your Task
 
-Analyze the repository data and generate a comprehensive documentation JSON object. Before creating your final output, you must work through your analysis systematically inside <analysis> tags in your thinking block. It's OK for this section to be quite long.
+Analyze the repository data and generate a comprehensive documentation file in Markdown format. Before creating your final output, you must work through your analysis systematically inside <analysis> tags in your thinking block. It's OK for this section to be quite long.
 
 Work through the following steps inside your thinking block:
 
@@ -89,17 +87,7 @@ You must follow these rules strictly:
 
 ## Output Requirements
 
-After completing your analysis in the thinking block, generate a JSON object with the following structure:
-
-<output_template>
-```json
-{
-  "aiContextFile": "Your markdown-formatted documentation string here..."
-}
-```
-</output_template>
-
-The `aiContextFile` value must be a markdown-formatted string optimized for machine reading by AI agents. It should include:
+After completing your analysis in the thinking block, generate the documentation in Markdown format. The output should be optimized for machine reading by AI agents and must include:
 
 1. **Project Overview**: Name, purpose, and description
 2. **Architectural Style**: The architectural pattern(s) used and why they fit the project structure
@@ -111,16 +99,14 @@ The `aiContextFile` value must be a markdown-formatted string optimized for mach
 8. **Key Files**: Important files and their purposes
 9. **Recent Development Focus**: Areas of active development based on recent commits
 
-## Example Output Structure
+## Critical Rules for Output
 
-Here is an example of the expected JSON format (with generic placeholder content):
+- Your final output should consist ONLY of the Markdown documentation.
+- DO NOT wrap the output in JSON.
+- DO NOT include the analysis work from the thinking block in the final output.
+- Start directly with the Markdown content (e.g., the project title).
 
-<output_example>
-```json
-{
-  "aiContextFile": "$AI_CONTEXT_DOCUMENTATION_TEMPLATE$"
-}
-```
-</output_example>
+## Output example
 
-Begin your analysis now. Your final output should consist only of the JSON object and should not duplicate or rehash any of the analysis work you did in the thinking block.
+
+Begin your analysis now.
