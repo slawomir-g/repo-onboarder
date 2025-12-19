@@ -39,110 +39,155 @@ public class DocumentationGenerationService {
 
     /**
      * Generuje dokumentację dla repozytorium używając AI modelu z wykorzystaniem cache.
-     * 
+     * <p>
      * Flow:
-     * 1. Sprawdza czy cache dla repozytorium już istnieje
-     * 2a. Jeśli istnieje - używa cached content (oszczędność kosztów i czasu)
-     * 2b. Jeśli nie istnieje - tworzy nowy cache z repository context XML
-     * 3. Wywołuje API z cached content lub normalnym promptem
-     * 4. Parsuje odpowiedź JSON
-     * 
+     * 1. Zapewnia dostępność cache z repository context (sprawdza/tworzy)
+     * 2. Generuje AI Context File używając cache
+     * 3. Generuje README używając tego samego cache
+     * 4. Zwraca wynik z oboma dokumentami
+     * <p>
      * Cache zawiera repository context XML (directory tree, hotspots, commits, source code)
      * i jest identyfikowany przez URL repozytorium. Automatycznie wygasa po skonfigurowanym TTL.
-     * 
-     * @param report raport z analizy Git repozytorium
+     * Reużycie cache dla wielu dokumentów oszczędza koszty i czas.
+     *
+     * @param report   raport z analizy Git repozytorium
      * @param repoRoot ścieżka do katalogu głównego repozytorium
      * @return wynik generacji dokumentacji zawierający README, Architecture i Context File
      */
     public DocumentationResult generateDocumentation(GitReport report, Path repoRoot) {
-        String repoUrl = report.repo.url;
-        String model = aiProperties.getChat().getOptions().getModel();
-        
-        logger.info("Rozpoczęcie generacji dokumentacji dla repo: {}", repoUrl);
-        
-        // 1. Sprawdź czy cache dla repozytorium już istnieje
-        Optional<String> cachedContentName = repositoryCacheService.getCachedContentName(repoUrl);
-        
-        String promptText;
-        GoogleGenAiChatOptions chatOptions = null;
-        
-        if (cachedContentName.isPresent()) {
-            // 2a. Cache istnieje - użyj cached content
-            logger.info("Używanie istniejącego cache dla repo: {}", repoUrl);
-            
-            // Konstruuj uproszczony prompt (bez repository context, bo jest w cache)
-            promptText = promptConstructionService.constructPromptWithCache(cachedContentName.get());
-            
-            // Utwórz opcje z referencją do cached content
-            chatOptions = GoogleGenAiChatOptions.builder()
-                    .useCachedContent(true)
-                    .cachedContentName(cachedContentName.get())
-                    .build();
-            
-        } else {
-            // 2b. Cache nie istnieje - spróbuj utworzyć nowy cache
-            logger.info("Cache nie istnieje dla repo: {}, próba utworzenia nowego...", repoUrl);
-            
-            // Przygotuj repository context XML
-            String repoContextXml = promptConstructionService.prepareRepositoryContext(report, repoRoot);
-            saveDebugFile("ai_context_prompt_debug.txt", repoContextXml);
-            
-            // Spróbuj utworzyć cached content
-            String newCacheName = repositoryCacheService.createCachedContent(repoUrl, repoContextXml, model);
-            
-            if (newCacheName != null) {
-                // Cache został utworzony - użyj go
-                logger.info("Cache został utworzony pomyślnie, używanie cached content");
-                
-                // Konstruuj prompt z referencją do nowo utworzonego cache
-                promptText = promptConstructionService.constructPromptWithCache(newCacheName);
-                
-                // Utwórz opcje z referencją do cached content
-                chatOptions = GoogleGenAiChatOptions.builder()
-                        .useCachedContent(true)
-                        .cachedContentName(newCacheName)
-                        .build();
-            } else {
-                // Cache nie jest dostępny - użyj tradycyjnego promptu z pełnym kontekstem
-                logger.info("Cache nie jest dostępny, używanie tradycyjnego promptu z pełnym kontekstem");
-                promptText = promptConstructionService.constructPrompt(report, repoRoot);
-                chatOptions = null; // Użyj domyślnych opcji
-            }
-        }
-        
-        saveDebugFile("prompt_debug.txt", promptText);
+        logger.info("Rozpoczęcie generacji dokumentacji dla repo: {}", report.repo.url);
 
-        // 3. Wywołaj API z cached content przez ChatModelClient
-        String responseText = chatModelClient.call(promptText, chatOptions);
-        saveDebugFile("response_debug.txt", responseText);
+        // 1. Zapewnij dostępność cache (jeden raz dla obu dokumentów)
+        String repositoryContentCacheName = ensureRepositoryContentCache(report, repoRoot);
 
-        // 4. Parsuj odpowiedź JSON
-        return parseResponse(responseText);
+        // 2. Wygeneruj AI Context File
+        String aiContextFile = generateSingleDocument(
+                repositoryContentCacheName,
+                PromptConstructionService.AI_CONTEXT_PROMPT_TEMPLATE_PATH,
+                PromptConstructionService.AI_CONTEXT_DOCUMENTATION_TEMPLATE_PATH,
+                report,
+                repoRoot);
+        saveDebugFile("ai_context_debug.txt", aiContextFile);
+
+        // 3. Wygeneruj README
+        String readme = generateSingleDocument(
+                repositoryContentCacheName,
+                PromptConstructionService.README_PROMPT_TEMPLATE_PATH,
+                PromptConstructionService.README_DOCUMENTATION_TEMPLATE_PATH,
+                report,
+                repoRoot);
+        saveDebugFile("readme_debug.txt", readme);
+
+        // 4. Złóż wynik
+        DocumentationResult result = new DocumentationResult();
+        result.setAiContextFile(aiContextFile);
+        result.setReadme(readme);
+
+        logger.info("Dokumentacja wygenerowana pomyślnie");
+        logger.debug("AI Context File długość: {} znaków",
+                aiContextFile != null ? aiContextFile.length() : 0);
+        logger.debug("README długość: {} znaków",
+                readme != null ? readme.length() : 0);
+
+        return result;
     }
 
     /**
-     * Parsuje odpowiedź z API i tworzy DocumentationResult.
-     * Zgodnie z nowymi wymaganiami, odpowiedź jest czystym tekstem Markdown.
-     * 
-     * @param responseText tekst odpowiedzi z API
-     * @return DocumentationResult z wypełnionym polem aiContextFile
+     * Zapewnia dostępność cache z repository context.
+     * Sprawdza czy cache istnieje, jeśli nie - próbuje utworzyć.
+     *
+     * @param report   raport Git
+     * @param repoRoot ścieżka do repozytorium
+     * @return nazwa cache (pełna nazwa w formacie cachedContent/xxx) lub null jeśli cache niedostępny
      */
-    private DocumentationResult parseResponse(String responseText) {
-        // Usuń markdown code block jeśli model go dodał (np. ```markdown ... ```)
-        String cleanedContent = extractMarkdownFromCodeBlock(responseText);
-        
-        DocumentationResult result = new DocumentationResult();
-        result.setAiContextFile(cleanedContent);
-        // Pola readme i architecture pozostają puste, ponieważ obecnie generujemy 
-        // tylko skonsolidowany plik kontekstu AI.
-        
-        return result;
+    private String ensureRepositoryContentCache(GitReport report, Path repoRoot) {
+        String repoUrl = report.repo.url;
+        String model = aiProperties.getChat().getOptions().getModel();
+
+        // 1. Sprawdź czy cache dla repozytorium już istnieje
+        Optional<String> cachedContentName = repositoryCacheService.getCachedContentName(repoUrl);
+
+        if (cachedContentName.isPresent()) {
+            // Cache istnieje - zwróć jego nazwę
+            logger.info("Używanie istniejącego cache dla repo: {}", repoUrl);
+            return cachedContentName.get();
+        }
+
+        // 2. Cache nie istnieje - spróbuj utworzyć nowy
+        logger.info("Cache nie istnieje dla repo: {}, próba utworzenia nowego...", repoUrl);
+
+        // Przygotuj repository context XML
+        String repoContextXml = promptConstructionService.prepareRepositoryContext(report, repoRoot);
+        saveDebugFile("ai_context_prompt_debug.txt", repoContextXml);
+
+        // Spróbuj utworzyć cached content
+        String newCacheName = repositoryCacheService.createCachedContent(repoUrl, repoContextXml, model);
+
+        if (newCacheName != null) {
+            logger.info("Cache został utworzony pomyślnie");
+            return newCacheName;
+        } else {
+            logger.info("Cache nie jest dostępny, będzie używany tradycyjny prompt z pełnym kontekstem");
+            return null;
+        }
+    }
+
+    /**
+     * Generuje pojedynczy dokument używając cache (jeśli dostępny) lub pełnego promptu.
+     *
+     * @param cacheName          nazwa cache lub null jeśli cache niedostępny
+     * @param promptTemplatePath ścieżka do template promptu
+     * @param docTemplatePath    ścieżka do template dokumentu
+     * @param report             raport Git (używany tylko gdy cacheName == null)
+     * @param repoRoot           ścieżka do repo (używany tylko gdy cacheName == null)
+     * @return wygenerowany dokument Markdown (po parsowaniu)
+     */
+    private String generateSingleDocument(
+            String cacheName,
+            String promptTemplatePath,
+            String docTemplatePath,
+            GitReport report,
+            Path repoRoot) {
+
+        String promptText;
+        GoogleGenAiChatOptions chatOptions = null;
+
+        if (cacheName != null) {
+            // Cache dostępny - użyj cached content
+            logger.debug("Generowanie dokumentu z użyciem cache: {}", cacheName);
+
+            // Konstruuj prompt z referencją do cache
+            promptText = promptConstructionService.constructPromptWithCache(
+                    cacheName, promptTemplatePath, docTemplatePath);
+
+            // Utwórz opcje z referencją do cached content
+            chatOptions = GoogleGenAiChatOptions.builder()
+                    .useCachedContent(true)
+                    .cachedContentName(cacheName)
+                    .build();
+
+        } else {
+            // Cache niedostępny - użyj pełnego promptu
+            logger.debug("Generowanie dokumentu bez cache (pełny prompt)");
+
+            // Konstruuj pełny prompt z repository context
+            promptText = promptConstructionService.constructPrompt(
+                    report, repoRoot, promptTemplatePath, docTemplatePath);
+
+            chatOptions = null; // Użyj domyślnych opcji
+        }
+
+        // Wywołaj API
+        String responseText = chatModelClient.call(promptText, chatOptions);
+
+        // Parsuj i zwróć czysty Markdown
+        return extractMarkdownFromCodeBlock(responseText);
     }
 
     /**
      * Wyciąga czystą treść z bloku kodu markdown, jeśli odpowiedź została w niego opakowana.
      * Obsługuje bloki typu ```markdown, ``` lub po prostu zwraca tekst, jeśli nie ma bloków.
-     * 
+     *
      * @param responseText tekst odpowiedzi z API
      * @return wyczyszczona treść markdown
      */
@@ -159,7 +204,7 @@ public class DocumentationGenerationService {
             if (trimmed.startsWith(prefix)) {
                 int start = trimmed.indexOf(prefix) + prefix.length();
                 int end = trimmed.lastIndexOf("```");
-                
+
                 if (end > start) {
                     String content = trimmed.substring(start, end).trim();
                     logger.debug("Wyciągnięto treść z bloku kodu {}, długość: {} znaków", prefix, content.length());
@@ -174,9 +219,9 @@ public class DocumentationGenerationService {
     /**
      * Zapisuje zawartość do pliku w katalogu working_directory w celach debugowania.
      * Metoda nie przerywa głównego flow w przypadku błędów - tylko loguje ostrzeżenia.
-     * 
+     *
      * @param filename nazwa pliku do zapisania
-     * @param content zawartość do zapisania
+     * @param content  zawartość do zapisania
      */
     private void saveDebugFile(String filename, String content) {
         try {
