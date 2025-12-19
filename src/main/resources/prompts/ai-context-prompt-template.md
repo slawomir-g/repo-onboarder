@@ -106,7 +106,7 @@ After completing your analysis in the thinking block, generate the documentation
 - DO NOT include the analysis work from the thinking block in the final output.
 - Start directly with the Markdown content (e.g., the project title).
 
-## Output example
+## Documentation template
+# Use the following documentation template as the required structure for your final output:
 
-
-Begin your analysis now.
+$DOCUMENTATION_TEMPLATE$

@@ -29,6 +29,18 @@ public class PromptConstructionService {
     private static final String REPOSITORY_CONTEXT_TEMPLATE_PATH = "prompts/repository-context-payload-template.xml";
     private static final String AI_CONTEXT_PROMPT_TEMPLATE_PATH = "prompts/ai-context-prompt-template.md";
     private static final String AI_CONTEXT_DOCUMENTATION_TEMPLATE_PATH = "prompts/ai-context-documentation-template.md";
+    private static final String README_PROMPT_TEMPLATE_PATH = "prompts/readme-prompt-template.md";
+    private static final String README_DOCUMENTATION_TEMPLATE_PATH = "prompts/readme-documentation-template.md";
+
+    /**
+     * Nazwa placeholdera w prompt template, pod którym wstrzykujemy instrukcje/strukturę dokumentu
+     * (np. szablon dla AI Context File albo szablon README).
+     *
+     * Uwaga: używamy jednego, generycznego klucza, żeby PromptConstructionService był niezależny
+     * od typu dokumentu.
+     */
+    private static final String DOCUMENTATION_TEMPLATE_PLACEHOLDER_KEY = "DOCUMENTATION_TEMPLATE";
+    
     private static final DateTimeFormatter TIMESTAMP_FORMATTER = 
             DateTimeFormatter.ISO_INSTANT.withZone(ZoneOffset.UTC);
 
@@ -58,23 +70,49 @@ public class PromptConstructionService {
      * @throws PromptConstructionException gdy nie można wczytać template'ów lub wystąpi błąd podczas konstrukcji
      */
     public String constructPrompt(GitReport report, Path repoRoot) {
+        // Kompatybilność wsteczna: dotychczasowi wywołujący nie muszą znać ścieżek template'ów.
+        // Domyślnie generujemy AI Context File w oparciu o istniejące zasoby classpath.
+        return constructPrompt(report, repoRoot, AI_CONTEXT_PROMPT_TEMPLATE_PATH, AI_CONTEXT_DOCUMENTATION_TEMPLATE_PATH);
+    }
+
+    /**
+     * Konstruuje finalny prompt dla AI modelu, pozwalając wskazać template promptu oraz template dokumentacji.
+     *
+     * Wyjaśnienie (po co to jest):
+     * - W projekcie generujemy więcej niż jeden typ dokumentu (np. AI Context File oraz README),
+     *   ale oba wymagają tego samego "repository context" oraz innego zestawu instrukcji/sekcji.
+     * - Parametryzacja ścieżek pozwala reużywać tę samą logikę konstrukcji promptu dla różnych dokumentów,
+     *   bez duplikowania kodu.
+     *
+     * @param report raport z analizy Git repozytorium
+     * @param repoRoot ścieżka do katalogu głównego repozytorium
+     * @param promptTemplatePath ścieżka w classpath do zewnętrznego prompt template (Markdown)
+     * @param documentationTemplatePath ścieżka w classpath do template instrukcji/struktury dokumentu (Markdown)
+     * @return finalny prompt jako String gotowy do wysłania do API
+     */
+    public String constructPrompt(
+            GitReport report,
+            Path repoRoot,
+            String promptTemplatePath,
+            String documentationTemplatePath
+    ) {
         try {
           
             String repositoryContextXml = preapreRepositoryContext(report, repoRoot);
             
-            String documentationTemplate = loadDocumentationTemplate();
+            String documentationTemplate = loadDocumentationTemplate(documentationTemplatePath);
             
             PromptTemplate finalPromptTemplate = PromptTemplate.builder()
                     .renderer(StTemplateRenderer.builder()
                             .startDelimiterToken(PLACEHOLDER_TOKEN)
                             .endDelimiterToken(PLACEHOLDER_TOKEN)
                             .build())
-                    .resource(new ClassPathResource(AI_CONTEXT_PROMPT_TEMPLATE_PATH))
+                    .resource(new ClassPathResource(promptTemplatePath))
                     .build();
             
             String finalPrompt = finalPromptTemplate.render(Map.of(
                     "REPOSITORY_CONTEXT_PAYLOAD_PLACEHOLDER", repositoryContextXml,
-                    "AI_CONTEXT_DOCUMENTATION_TEMPLATE", documentationTemplate
+                    DOCUMENTATION_TEMPLATE_PLACEHOLDER_KEY, documentationTemplate
             ));
 
             return finalPrompt;
@@ -97,11 +135,34 @@ public class PromptConstructionService {
      * @throws PromptConstructionException gdy nie można wczytać template'ów
      */
     public String constructPromptWithCache(String cachedContentName) {
+        // Kompatybilność wsteczna: domyślnie korzystamy z template'ów dla AI Context File.
+        return constructPromptWithCache(cachedContentName, AI_CONTEXT_PROMPT_TEMPLATE_PATH, AI_CONTEXT_DOCUMENTATION_TEMPLATE_PATH);
+    }
+
+    /**
+     * Konstruuje prompt dla AI modelu wykorzystując cached content, pozwalając wskazać template'y.
+     *
+     * Wyjaśnienie:
+     * - Cached content zawiera już repository context XML jako system instruction, więc w prompt template
+     *   wstrzykujemy jedynie "cacheInfo" jako placeholder dla kontekstu oraz template instrukcji dokumentu.
+     * - Parametryzacja ścieżek umożliwia generowanie różnych dokumentów (AI Context / README) w oparciu
+     *   o ten sam cache.
+     *
+     * @param cachedContentName nazwa cached content do użycia
+     * @param promptTemplatePath ścieżka w classpath do zewnętrznego prompt template (Markdown)
+     * @param documentationTemplatePath ścieżka w classpath do template instrukcji/struktury dokumentu (Markdown)
+     * @return prompt jako String (instrukcje + template dokumentu, bez pełnego repository context)
+     */
+    public String constructPromptWithCache(
+            String cachedContentName,
+            String promptTemplatePath,
+            String documentationTemplatePath
+    ) {
         try {
             // Gdy używamy cached content, nie musimy dołączać repository context do promptu
             // - jest już w cache jako system instruction. Tutaj budujemy tylko 
             // instrukcje dla AI co ma wygenerować.
-            String documentationTemplate = loadDocumentationTemplate();
+            String documentationTemplate = loadDocumentationTemplate(documentationTemplatePath);
             
             // Utwórz uproszczony prompt - cached content zawiera już repository context
             PromptTemplate simplePromptTemplate = PromptTemplate.builder()
@@ -109,7 +170,7 @@ public class PromptConstructionService {
                             .startDelimiterToken(PLACEHOLDER_TOKEN)
                             .endDelimiterToken(PLACEHOLDER_TOKEN)
                             .build())
-                    .resource(new ClassPathResource(AI_CONTEXT_PROMPT_TEMPLATE_PATH))
+                    .resource(new ClassPathResource(promptTemplatePath))
                     .build();
             
             // W prompt template używamy placeholdera, ale zamiast pełnego XML 
@@ -122,7 +183,7 @@ public class PromptConstructionService {
             
             return simplePromptTemplate.render(Map.of(
                     "REPOSITORY_CONTEXT_PAYLOAD_PLACEHOLDER", cacheInfo,
-                    "AI_CONTEXT_DOCUMENTATION_TEMPLATE", documentationTemplate
+                    DOCUMENTATION_TEMPLATE_PLACEHOLDER_KEY, documentationTemplate
             ));
             
         } catch (Exception e) {
@@ -146,9 +207,29 @@ public class PromptConstructionService {
         return preapreRepositoryContext(report, repoRoot);
     }
 
-    private String loadDocumentationTemplate() throws Exception {
-        ClassPathResource docTemplateResource = new ClassPathResource(AI_CONTEXT_DOCUMENTATION_TEMPLATE_PATH);
+    /**
+     * Wczytuje z classpath template instrukcji/struktury dokumentu.
+     *
+     * Wyjaśnienie:
+     * - Template dokumentacji (np. skeleton README albo skeleton AI Context File) trzymamy jako zasób w classpath,
+     *   aby był wersjonowany razem z aplikacją i możliwy do łatwej edycji bez zmian w kodzie.
+     * - Przyjmujemy ścieżkę jako argument, dzięki czemu ta sama logika działa dla wielu typów dokumentów.
+     */
+    private String loadDocumentationTemplate(String documentationTemplatePath) throws Exception {
+        ClassPathResource docTemplateResource = new ClassPathResource(documentationTemplatePath);
         return docTemplateResource.getContentAsString(StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Pomocnicze stałe dla wywołujących (np. DocumentationGenerationService), jeśli chcą generować README.
+     * Na tym etapie nie używamy ich bezpośrednio w logice (logika jest parametryzowana).
+     */
+    public String getReadmePromptTemplatePath() {
+        return README_PROMPT_TEMPLATE_PATH;
+    }
+
+    public String getReadmeDocumentationTemplatePath() {
+        return README_DOCUMENTATION_TEMPLATE_PATH;
     }
 
     private String preapreRepositoryContext(GitReport report, Path repoRoot) {
