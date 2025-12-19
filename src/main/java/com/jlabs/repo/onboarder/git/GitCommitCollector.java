@@ -25,9 +25,9 @@ public class GitCommitCollector {
         int maxCommits = props.getLimits().getMaxCommits();
         int maxChangedFiles = props.getLimits().getMaxChangedFiles();
 
-        try (RevWalk walk = new RevWalk(repo)) {
+        try (RevWalk walk = new RevWalk(repo);
+             DiffFormatter diffFormatter = new DiffFormatter(DisabledOutputStream.INSTANCE)) {
 
-            DiffFormatter diffFormatter = new DiffFormatter(DisabledOutputStream.INSTANCE);
             diffFormatter.setRepository(repo);
             diffFormatter.setDetectRenames(true);
             diffFormatter.setDiffComparator(RawTextComparator.DEFAULT);

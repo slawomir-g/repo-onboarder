@@ -2,9 +2,7 @@ package com.jlabs.repo.onboarder;
 
 import com.jlabs.repo.onboarder.config.AiProperties;
 import com.jlabs.repo.onboarder.config.GitCoreProperties;
-import com.jlabs.repo.onboarder.model.DocumentationResult;
 import com.jlabs.repo.onboarder.service.GitCoreRunner;
-import com.jlabs.repo.onboarder.service.exceptions.AiException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
