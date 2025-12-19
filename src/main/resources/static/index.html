@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Repo Onboarder</title>
+    <!-- Use marked.js for Markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Helvetica, Arial, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #f4f6f8;
+        color: #333;
+      }
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+      h1 {
+        color: #2c3e50;
+      }
+      .input-group {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      input[type="text"] {
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        flex-grow: 1;
+        font-size: 16px;
+      }
+      button {
+        padding: 10px 20px;
+        background-color: #0066cc;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: bold;
+      }
+      button:hover {
+        background-color: #0052a3;
+      }
+      button:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+      }
+      .error {
+        color: #d32f2f;
+        background-color: #fdecea;
+        padding: 10px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+        display: none;
+      }
+      .result-section {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+        display: none;
+      }
+      .tabs {
+        display: flex;
+        border-bottom: 1px solid #ddd;
+        margin-bottom: 20px;
+      }
+      .tab {
+        padding: 10px 20px;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        font-weight: 500;
+      }
+      .tab.active {
+        border-bottom-color: #0066cc;
+        color: #0066cc;
+      }
+      .tab-content {
+        display: none;
+      }
+      .tab-content.active {
+        display: block;
+      }
+      /* Markdown styles */
+      .markdown-body {
+        line-height: 1.6;
+      }
+      .markdown-body pre {
+        background-color: #f6f8fa;
+        padding: 16px;
+        border-radius: 6px;
+        overflow: auto;
+      }
+      .markdown-body code {
+        font-family: SFMono-Regular, Consolas, "Liberation Mono", Menlo,
+          monospace;
+        background-color: rgba(175, 184, 193, 0.2);
+        padding: 0.2em 0.4em;
+        border-radius: 6px;
+      }
+      .markdown-body pre code {
+        padding: 0;
+        background-color: transparent;
+      }
+      .spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #0066cc;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        animation: spin 1s linear infinite;
+        display: none;
+        margin-left: 10px;
+      }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Repo Onboarder</h1>
+
+      <div class="input-group">
+        <input
+          type="text"
+          id="repoUrl"
+          placeholder="Enter Repository URL (e.g., https://github.com/user/repo)"
+          required
+        />
+        <input
+          type="text"
+          id="branch"
+          placeholder="Branch (optional, default: main)"
+          style="max-width: 150px"
+        />
+        <input
+          type="text"
+          id="workdir"
+          placeholder="Workdir (optional)"
+          style="display: none"
+        />
+        <!-- Hidden for simplicity MVP -->
+        <button id="analyzeBtn" onclick="runAnalysis()">
+          Analyze Repository
+        </button>
+        <div class="spinner" id="spinner"></div>
+      </div>
+
+      <div id="errorMsg" class="error"></div>
+
+      <div id="results" class="result-section">
+        <div class="tabs">
+          <div class="tab active" onclick="switchTab('readme')">README.md</div>
+          <div class="tab" onclick="switchTab('architecture')">
+            Architecture
+          </div>
+          <div class="tab" onclick="switchTab('context')">AI Context</div>
+        </div>
+
+        <div id="readme-content" class="tab-content active markdown-body"></div>
+        <div id="architecture-content" class="tab-content markdown-body"></div>
+        <div id="context-content" class="tab-content markdown-body"></div>
+      </div>
+    </div>
+
+    <script>
+      async function runAnalysis() {
+        const repoUrl = document.getElementById("repoUrl").value.trim();
+        const branch = document.getElementById("branch").value.trim();
+        // Default workdir is handled by backend if param is missing, but here we let the backend defaults take over
+        // by constructing params properly.
+
+        if (!repoUrl) {
+          showError("Please enter a repository URL");
+          return;
+        }
+
+        const btn = document.getElementById("analyzeBtn");
+        const spinner = document.getElementById("spinner");
+        const resultsDiv = document.getElementById("results");
+        const errorDiv = document.getElementById("errorMsg");
+
+        // Reset UI
+        btn.disabled = true;
+        spinner.style.display = "block";
+        resultsDiv.style.display = "none";
+        errorDiv.style.display = "none";
+
+        try {
+          const formData = new FormData();
+          formData.append("repoUrl", repoUrl);
+          if (branch) formData.append("branch", branch);
+
+          // Note: workdir is defaulted on server, we don't send it unless needed.
+          // Using URL encoding for params in POST request as controller uses @RequestParam
+          const params = new URLSearchParams();
+          params.append("repoUrl", repoUrl);
+          if (branch) params.append("branch", branch);
+          // Default workdir in controller is usually a temp dir, let's rely on that default logic.
+          // However, the controller might expect 'workdir' param to be present if required=true.
+          // Looking at the controller code: @RequestParam(required=true, defaultValue="${...}")
+          // So if we don't send it, the default value is used. Perfect.
+
+          const response = await fetch(
+            `/api/git-core/run?${params.toString()}`,
+            {
+              method: "POST",
+              // No body body needed as we put params in URL, or we can use form-data.
+              // Spring's @RequestParam handles query params cleanly.
+            }
+          );
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(errorText || `Server error: ${response.status}`);
+          }
+
+          const data = await response.json();
+          renderResults(data);
+        } catch (error) {
+          showError(error.message);
+        } finally {
+          btn.disabled = false;
+          spinner.style.display = "none";
+        }
+      }
+
+      function renderResults(data) {
+        document.getElementById("results").style.display = "block";
+
+        document.getElementById("readme-content").innerHTML = marked.parse(
+          data.readme || "*No README generated*"
+        );
+        document.getElementById("architecture-content").innerHTML =
+          marked.parse(data.architecture || "*No Architecture doc generated*");
+        document.getElementById("context-content").innerHTML = marked.parse(
+          data.aiContextFile || "*No Context file generated*"
+        );
+      }
+
+      function showError(msg) {
+        const el = document.getElementById("errorMsg");
+        el.textContent = msg;
+        el.style.display = "block";
+      }
+
+      function switchTab(tabName) {
+        // Update tab classes
+        document
+          .querySelectorAll(".tab")
+          .forEach((t) => t.classList.remove("active"));
+        event.currentTarget.classList.add("active");
+
+        // Update content visibility
+        document
+          .querySelectorAll(".tab-content")
+          .forEach((c) => c.classList.remove("active"));
+
+        if (tabName === "readme") {
+          document.getElementById("readme-content").classList.add("active");
+        } else if (tabName === "architecture") {
+          document
+            .getElementById("architecture-content")
+            .classList.add("active");
+        } else {
+          document.getElementById("context-content").classList.add("active");
+        }
+      }
+    </script>
+  </body>
+</html>
