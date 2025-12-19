@@ -12,8 +12,8 @@ import java.nio.file.*;
 @Service
 public class GitRepositoryManager {
 
-    public Git openOrClone(GitCoreProperties props) throws Exception {
-        Path workDir = Path.of(props.getWorkdir());
+    public Git openOrClone(GitCoreProperties props, String workDirPath, String repoUrl) throws Exception {
+        Path workDir = Path.of(workDirPath);
         Files.createDirectories(workDir);
 
         Path gitDir = workDir.resolve(".git");
@@ -26,7 +26,7 @@ public class GitRepositoryManager {
         }
 
         var cmd = Git.cloneRepository()
-                .setURI(props.getRepoUrl())
+                .setURI(repoUrl)
                 .setDirectory(workDir.toFile())
                 .setCloneAllBranches(true);
 

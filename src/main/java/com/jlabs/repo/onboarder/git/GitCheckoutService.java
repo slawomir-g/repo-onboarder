@@ -19,7 +19,8 @@ public class GitCheckoutService {
     public void fetchCheckoutPull(
             Git git,
             GitCoreProperties props,
-            CredentialsProvider credentialsProvider
+            CredentialsProvider credentialsProvider,
+            String branch
     ) throws Exception {
 
         // --- FETCH (equivalent to: git fetch --prune)
@@ -32,7 +33,6 @@ public class GitCheckoutService {
         fetchCommand.call();
 
         // --- CHECKOUT
-        String branch = props.getBranch();
 
         try {
             // Try to checkout existing local branch

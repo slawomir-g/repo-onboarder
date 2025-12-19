@@ -1,0 +1,5 @@
+.gradle
+build
+out
+repo-work/*
+!.gitkeep

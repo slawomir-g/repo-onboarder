@@ -19,13 +19,16 @@ public class GitMetaCollector {
             Git git,
             Repository repo,
             GitCoreProperties props,
+            String repoUrl,
+            String branch,
+            String workDir,
             GitReport report
     ) throws Exception {
 
         // ===== BASIC REPO INFO =====
-        report.repo.url = props.getRepoUrl();
-        report.repo.branch = repo.getBranch();
-        report.repo.workdir = repo.getWorkTree().getAbsolutePath();
+        report.repo.url = repoUrl;
+        report.repo.branch = branch;
+        report.repo.workdir = workDir;
 
         // ===== HEAD INFO =====
         ObjectId head = repo.resolve(Constants.HEAD);

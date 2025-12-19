@@ -17,11 +17,11 @@ public class GitAnalysisContext implements AutoCloseable {
         this.repositoryManager = repositoryManager;
     }
 
-    public Git open(GitCoreProperties props) throws Exception {
+    public Git open(GitCoreProperties props, String workDir, String repoUrl) throws Exception {
 
         CredentialsProvider credentials = repositoryManager.credentials(props);
 
-        this.git = repositoryManager.openOrClone(props);
+        this.git = repositoryManager.openOrClone(props, workDir, repoUrl);
 
         return this.git;
     }

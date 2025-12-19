@@ -7,6 +7,8 @@ import com.jlabs.repo.onboarder.model.DocumentationResult;
 import com.jlabs.repo.onboarder.model.GitReport;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.transport.CredentialsProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -61,13 +63,16 @@ public class GitCoreRunner {
         this.documentationGenerationService = documentationGenerationService;
     }
 
+    private static final Logger logger = LoggerFactory.getLogger(GitCoreRunner.class);
+
+
     /**
      * Wykonuje pełną analizę repozytorium Git i generuje dokumentację przy użyciu AI.
-     * 
+     *
      * @return wynik generacji dokumentacji zawierający README, Architecture i Context File
      * @throws Exception gdy wystąpi błąd podczas analizy lub generacji dokumentacji
      */
-    public DocumentationResult run() throws Exception {
+    public DocumentationResult run(String repoUrl, String branch, String workdir) throws Exception {
 
         Path appWorkingDir = Path.of(System.getProperty("user.dir"), "working_directory");
         Path outputFile = appWorkingDir.resolve(properties.getOutput().getMarkdown());
@@ -77,13 +82,13 @@ public class GitCoreRunner {
 
         try (GitAnalysisContext ctx = analysisContext) {
 
-            Git git = ctx.open(properties);
+            Git git = ctx.open(properties, workdir, repoUrl);
 
-            checkoutService.fetchCheckoutPull(git, properties, credentials);
+            checkoutService.fetchCheckoutPull(git, properties, credentials, branch);
 
             GitReport report = new GitReport();
 
-            metaCollector.collect(git, git.getRepository(), properties, report);
+            metaCollector.collect(git, git.getRepository(), properties, repoUrl, branch, workdir, report);
 
             fileCollector.collect(git.getRepository(), report);
 
@@ -119,12 +124,20 @@ public class GitCoreRunner {
 
             sourceCodeCorpusPayloadWriter.write(
                     report,
-                    Path.of(properties.getWorkdir()),
+                    Path.of(workdir),
                     sourceCorpusFile
             );
 
             // Zapisz wygenerowaną dokumentację do plików
             saveDocumentationResult(result, appWorkingDir);
+
+            logger.info("Dokumentacja wygenerowana pomyślnie");
+            logger.debug("README długość: {} znaków",
+                    result.getReadme() != null ? result.getReadme().length() : 0);
+            logger.debug("Architecture długość: {} znaków",
+                    result.getArchitecture() != null ? result.getArchitecture().length() : 0);
+            logger.debug("Context File długość: {} znaków",
+                    result.getAiContextFile() != null ? result.getAiContextFile().length() : 0);
 
             return result;
         }

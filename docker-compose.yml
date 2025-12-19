@@ -1,0 +1,18 @@
+version: "3.9"
+
+services:
+  git-core:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SPRING_AI_GOOGLE_GENAI_API_KEY: ${SPRING_AI_GOOGLE_GENAI_API_KEY}
+    image: git-core-app:java25
+    container_name: git-core
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_AI_GOOGLE_GENAI_API_KEY: ${SPRING_AI_GOOGLE_GENAI_API_KEY}
+      SPRING_PROFILES_ACTIVE: docker
+    volumes:
+      - ./repo-work:/app/repo-work

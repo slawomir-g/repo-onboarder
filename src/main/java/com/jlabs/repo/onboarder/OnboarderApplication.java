@@ -31,23 +31,6 @@ public class OnboarderApplication implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        try {
-            DocumentationResult result = runner.run();
-            
-            // Logowanie wyniku dla development/debugging
-            logger.info("Dokumentacja wygenerowana pomyślnie");
-            logger.debug("README długość: {} znaków", 
-                    result.getReadme() != null ? result.getReadme().length() : 0);
-            logger.debug("Architecture długość: {} znaków", 
-                    result.getArchitecture() != null ? result.getArchitecture().length() : 0);
-            logger.debug("Context File długość: {} znaków", 
-                    result.getAiContextFile() != null ? result.getAiContextFile().length() : 0);
-            
-            // W przyszłości tutaj będzie zwrot do REST API
-            
-        } catch (AiException e) {
-            logger.error("Błąd podczas generacji dokumentacji: {}", e.getMessage(), e);
-            throw e;
-        }
+        logger.info("Application is available in: http://localhost:8080/swagger-ui.html\n");
     }
 }

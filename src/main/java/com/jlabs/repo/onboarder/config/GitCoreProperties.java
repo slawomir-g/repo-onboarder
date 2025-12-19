@@ -5,22 +5,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "git-core")
 public class GitCoreProperties {
 
-    private String repoUrl;
-    private String branch = "main";
-    private String workdir = "repo-work";
-
     private Output output = new Output();
     private Limits limits = new Limits();
     private Auth auth = new Auth();
-
-    public String getRepoUrl() { return repoUrl; }
-    public void setRepoUrl(String repoUrl) { this.repoUrl = repoUrl; }
-
-    public String getBranch() { return branch; }
-    public void setBranch(String branch) { this.branch = branch; }
-
-    public String getWorkdir() { return workdir; }
-    public void setWorkdir(String workdir) { this.workdir = workdir; }
 
     public Output getOutput() { return output; }
     public void setOutput(Output output) { this.output = output; }
