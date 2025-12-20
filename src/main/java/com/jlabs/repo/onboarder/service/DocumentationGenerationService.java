@@ -24,16 +24,19 @@ public class DocumentationGenerationService {
     private final ChatModelClient chatModelClient;
     private final PromptConstructionService promptConstructionService;
     private final RepositoryCacheService repositoryCacheService;
+    private final DocumentationPostProcessingService documentationPostProcessingService;
     private final AiProperties aiProperties;
 
     public DocumentationGenerationService(
             ChatModelClient chatModelClient,
             PromptConstructionService promptConstructionService,
             RepositoryCacheService repositoryCacheService,
+            DocumentationPostProcessingService documentationPostProcessingService,
             AiProperties aiProperties) {
         this.chatModelClient = chatModelClient;
         this.promptConstructionService = promptConstructionService;
         this.repositoryCacheService = repositoryCacheService;
+        this.documentationPostProcessingService = documentationPostProcessingService;
         this.aiProperties = aiProperties;
     }
 
@@ -67,8 +70,12 @@ public class DocumentationGenerationService {
                 PromptConstructionService.AI_CONTEXT_DOCUMENTATION_TEMPLATE_PATH,
                 report,
                 repoRoot);
-        saveDebugFile("ai_context_debug.txt", aiContextFile);
 
+        // 2.1 Post-processing - dodaj sekcję Project Structure
+        aiContextFile = documentationPostProcessingService.enhance(aiContextFile, report);
+
+        saveDebugFile("ai_context_debug.txt", aiContextFile);
+        
         // 3. Wygeneruj README
         String readme = generateSingleDocument(
                 repositoryContentCacheName,
