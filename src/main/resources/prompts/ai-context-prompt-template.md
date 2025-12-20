@@ -49,6 +49,11 @@ Examine the source code to identify coding style preferences and conventions:
 - **Functional vs imperative**: Note whether the code prefers functional programming constructs or imperative styles
 - **Immutability preferences**: Check if the code favors immutable data structures
 - **Naming conventions**: Observe patterns in variable, method, and class naming
+- **Error Handling Strategy**: Analyze error propagation (exceptions vs result types/monads) and handling patterns (centralized handlers vs local error checks).
+- **Component Coupling**: Identify how dependencies are provided to components (Dependency Injection, module imports, or global state/singletons).
+- **Testing Philosophy**: Observe the testing pyramid approach, mocking strategies (strict vs sociable tests), and test isolation patterns.
+- **Concurrency Model**: Note how asynchronous operations are handled (async/await, reactive streams, threads, or callbacks).
+- **Data Flow & State**: Check how state is managed and shared (mutable shared state, redux-like patterns, or strict encapsulation).
 - **Other clean code conventions**: Recall yourself all other other clean code conventions, rules and principles, check which of them are present in the code and add to the list as separate points. Be detailed.
 
 Quote specific code examples that demonstrate these patterns. Document these patterns in instruct mode so new AI agents understand the project's style and can follow them.
