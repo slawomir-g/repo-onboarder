@@ -45,12 +45,13 @@ List out each framework/library with its specific version number as you find the
 
 ### Step 4: Analyze Coding Style and Conventions
 Examine the source code to identify coding style preferences and conventions:
-- **Language-specific patterns**: For Java, check if the code uses Lombok annotations vs records, streams vs traditional for-loops, Optional usage, etc.
+- **Language-specific patterns**: e.g. for Java, check if the code uses Lombok annotations vs records, streams vs traditional for-loops, Optional usage, etc.
 - **Functional vs imperative**: Note whether the code prefers functional programming constructs or imperative styles
 - **Immutability preferences**: Check if the code favors immutable data structures
 - **Naming conventions**: Observe patterns in variable, method, and class naming
+- **Other clean code conventions**: Recall yourself all other other clean code conventions, rules and principles, check which of them are present in the code and add to the list as separate points. Be detailed.
 
-Quote specific code examples that demonstrate these patterns. Document these patterns so new AI agents understand the project's style.
+Quote specific code examples that demonstrate these patterns. Document these patterns in instruct mode so new AI agents understand the project's style and can follow them.
 
 ### Step 5: Identify Design Patterns
 Look for common design patterns in the code:
@@ -89,22 +90,13 @@ You must follow these rules strictly:
 
 After completing your analysis in the thinking block, generate the documentation in Markdown format. The output should be optimized for machine reading by AI agents and must include:
 
-1. **Project Overview**: Name, purpose, and description
-2. **Architectural Style**: The architectural pattern(s) used and why they fit the project structure
-3. **Technology Stack**: Frameworks, libraries, and tools with version numbers
-4. **Coding Style and Conventions**: Documented coding preferences (e.g., Lombok vs records, streams vs loops, immutability patterns, naming conventions)
-5. **Design Patterns**: GoF and other design patterns identified in the codebase with examples of where they're used
-6. **Core Components**: Main modules/services and their responsibilities
-7. **High-Churn Areas (Hotspots)**: Files that change frequently and require special attention
-8. **Key Files**: Important files and their purposes
-9. **Recent Development Focus**: Areas of active development based on recent commits
-
 ## Critical Rules for Output
 
 - Your final output should consist ONLY of the Markdown documentation.
 - DO NOT wrap the output in JSON.
 - DO NOT include the analysis work from the thinking block in the final output.
 - Start directly with the Markdown content (e.g., the project title).
+- Use imperative language in order to instruct ai assistant to follow rules described in this file
 
 ## Documentation template
 # Use the following documentation template as the required structure for your final output:

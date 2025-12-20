@@ -5,7 +5,7 @@
 - Mention the primary use-case and intended audience (developers, operators, end users).
 
 ## Key Features
-- List the most important features as bullet points.
+- List the most important features as bullet points. Focus on crunching domain. 
 
 ## Technology Stack
 - List languages, frameworks, and key libraries with versions if present in the repository context.
@@ -33,4 +33,8 @@
 - Provide a short high-level architecture description based strictly on the repository structure and code.
 - Mention key modules/packages and their responsibilities.
 
+## Hotspots (High-Churn Files)
+- `path/to/file.ext` (churn score: XX) - [Why this file changes frequently]
 
+## Recent Development Focus
+[Summary of recent development activity]

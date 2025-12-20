@@ -21,11 +21,5 @@
 ### Component 1
 [Description and responsibilities]
 
-## Hotspots (High-Churn Files)
-- `path/to/file.ext` (churn score: XX) - [Why this file changes frequently]
-
 ## Key Files
 - `path/to/important/file.ext` - [Purpose]
-
-## Recent Development Focus
-[Summary of recent development activity]
