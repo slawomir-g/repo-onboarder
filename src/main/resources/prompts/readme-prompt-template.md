@@ -4,12 +4,6 @@ Here is the repository context data you need to analyze:
 
 $REPOSITORY_CONTEXT_PAYLOAD_PLACEHOLDER$
 
-## README structure and writing guidelines
-
-Use the following README template and instructions as the target structure for your final output:
-
-$DOCUMENTATION_TEMPLATE$
-
 ## Critical Constraints
 
 You must follow these rules strictly:

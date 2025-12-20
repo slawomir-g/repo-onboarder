@@ -104,6 +104,6 @@ After completing your analysis in the thinking block, generate the documentation
 - Use imperative language in order to instruct ai assistant to follow rules described in this file
 
 ## Documentation template
-# Use the following documentation template as the required structure for your final output:
+# Use the following documentation template as the required structure for your final output, DO NOT include any aditional comments or thinking process, ONLY CORRECTLY FORMATTED MARKDOWN FILE AS TEMPLATE BELOW:
 
 $DOCUMENTATION_TEMPLATE$

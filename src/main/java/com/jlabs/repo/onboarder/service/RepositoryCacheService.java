@@ -80,7 +80,7 @@ public class RepositoryCacheService {
         sanitized = sanitized.toLowerCase();
         
         logger.debug("Cache name dla repo URL '{}': '{}'", repoUrl, sanitized);
-        return "v3_" + sanitized;
+        return sanitized;
     }
 
     /**

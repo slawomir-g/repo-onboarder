@@ -5,7 +5,13 @@
 - Mention the primary use-case and intended audience (developers, operators, end users).
 
 ## Key Features
-- List the most important features as bullet points. Focus on crunching domain. 
+- List the most important features as bullet points. Focus on mostly on domain. 
+
+## Dependencies
+- List dependencies on external services, APIs if there are any. If applications is not using explicit external services skip this part.
+
+#Flows
+- Create flow diagrams so developer could easily understand how logic works inside. For each domain feature create separate flow. If there are many flows constraint to 5-10 most important. Flows should be in ascii art. Add descriptions to each step.
 
 ## Technology Stack
 - List languages, frameworks, and key libraries with versions if present in the repository context.
@@ -37,4 +43,4 @@
 - `path/to/file.ext` (churn score: XX) - [Why this file changes frequently]
 
 ## Recent Development Focus
-[Summary of recent development activity]
+[Summary of recent development activity, focus primarly on domain changes, new dependencies etc. upgrading libraries is not so important]
