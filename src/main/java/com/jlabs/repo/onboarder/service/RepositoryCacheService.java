@@ -151,10 +151,10 @@ public class RepositoryCacheService {
         }
         
         String cacheName = getCacheNameForRepository(repoUrl);
-        String displayName = String.format("cache-%s-%d", cacheName, System.currentTimeMillis() / 1000);
+
         
         try {
-            logger.info("Tworzenie nowego cache dla repo '{}' (display name: '{}')", repoUrl, displayName);
+            logger.info("Tworzenie nowego cache dla repo '{}' (display name: '{}')", repoUrl, cacheName);
             
             // Oszacuj liczbę tokenów
             long estimatedTokens = estimateTokenCount(repositoryContextXml);
@@ -174,7 +174,7 @@ public class RepositoryCacheService {
                                     .parts(List.of(Part.fromText(repositoryContextXml)))
                                     .build()
                     ))
-                    .displayName(displayName)
+                    .displayName(cacheName)
                     .ttl(aiProperties.getChat().getOptions().getRepositoryCacheTtl())
                     .build();
             

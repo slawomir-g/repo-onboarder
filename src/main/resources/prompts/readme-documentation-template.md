@@ -5,13 +5,22 @@
 - Mention the primary use-case and intended audience (developers, operators, end users).
 
 ## Key Features
-- List the most important features as bullet points. Focus on mostly on domain. 
+- List the most important features as bullet points. Focus on mostly on domain.
 
 ## Dependencies
 - List dependencies on external services, APIs if there are any. If applications is not using explicit external services skip this part.
 
-#Flows
+## Flows
 - Create flow diagrams so developer could easily understand how logic works inside. For each domain feature create separate flow. If there are many flows constraint to 5-10 most important. Flows should be in ascii art. Add descriptions to each step.
+
+## Architecture Overview
+- Provide a short high-level architecture description based strictly on the repository structure and code.
+- Mention key modules/packages and their responsibilities.
+
+## Package structure
+- Provide detailed information about project structure, packages tree with description what they do and how are they connected.
+- Present it in ASCII ART for better readability and visualisation
+- Information should be detailed so user could actually understand what are relations between packages
 
 ## Technology Stack
 - List languages, frameworks, and key libraries with versions if present in the repository context.
@@ -34,10 +43,6 @@
   - running tests
   - building an artifact
 - If the project exposes HTTP endpoints/CLI commands and they are present in the context, include small examples.
-
-## Architecture Overview
-- Provide a short high-level architecture description based strictly on the repository structure and code.
-- Mention key modules/packages and their responsibilities.
 
 ## Hotspots (High-Churn Files)
 - `path/to/file.ext` (churn score: XX) - [Why this file changes frequently]
