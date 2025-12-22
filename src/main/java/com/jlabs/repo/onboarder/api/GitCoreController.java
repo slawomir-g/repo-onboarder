@@ -45,16 +45,15 @@ public class GitCoreController {
                     required = true,
                     defaultValue = "${git-core.branch}"
             ) String branch,
-
-            @Parameter(description = "Katalog roboczy")
+            @Parameter(description = "Nazwa brancha")
             @RequestParam(
                     required = true,
-                    defaultValue = "${git-core.workdir}"
-            ) String workdir
+                    defaultValue = "${git-core.withTest}"
+            ) boolean withTest
     ) {
         log.info("REST: uruchamiam analizę GitCore");
         try {
-            DocumentationResult result = runner.run(repoUrl,branch,workdir);
+            DocumentationResult result = runner.run(repoUrl,branch, withTest);
             return ResponseEntity.ok(result);
         } catch (Exception ex) {
             log.error("Błąd podczas analizy GitCore", ex);

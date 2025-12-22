@@ -6,15 +6,18 @@ import com.jlabs.repo.onboarder.markdown.*;
 import com.jlabs.repo.onboarder.model.DocumentationResult;
 import com.jlabs.repo.onboarder.model.GitReport;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.UUID;
 
 @Service
 public class GitCoreRunner {
@@ -34,6 +37,7 @@ public class GitCoreRunner {
     private final HotspotsPayloadWriter hotspotsPayloadWriter;
     private final SourceCodeCorpusPayloadWriter sourceCodeCorpusPayloadWriter;
     private final DocumentationGenerationService documentationGenerationService;
+    private final TestDirectoryCleaner testDirectoryCleaner;
 
     public GitCoreRunner(
             GitCoreProperties properties,
@@ -42,11 +46,15 @@ public class GitCoreRunner {
             GitCheckoutService checkoutService,
             GitMetaCollector metaCollector,
             GitFileCollector fileCollector,
-            GitCommitCollector commitCollector, GitHotspotsCollector hotspotsCollector,
+            GitCommitCollector commitCollector,
+            GitHotspotsCollector hotspotsCollector,
             MarkdownReportWriter markdownWriter,
-            CommitHistoryPayloadWriter commitHistoryPayloadWriter, DirectoryTreePayloadWriter directoryTreePayloadWriter, HotspotsPayloadWriter hotspotsPayloadWriter, SourceCodeCorpusPayloadWriter sourceCodeCorpusPayloadWriter,
-            DocumentationGenerationService documentationGenerationService
-    ) {
+            CommitHistoryPayloadWriter commitHistoryPayloadWriter,
+            DirectoryTreePayloadWriter directoryTreePayloadWriter,
+            HotspotsPayloadWriter hotspotsPayloadWriter,
+            SourceCodeCorpusPayloadWriter sourceCodeCorpusPayloadWriter,
+            DocumentationGenerationService documentationGenerationService,
+            TestDirectoryCleaner testDirectoryCleaner) {
         this.properties = properties;
         this.analysisContext = analysisContext;
         this.repositoryManager = repositoryManager;
@@ -61,6 +69,7 @@ public class GitCoreRunner {
         this.hotspotsPayloadWriter = hotspotsPayloadWriter;
         this.sourceCodeCorpusPayloadWriter = sourceCodeCorpusPayloadWriter;
         this.documentationGenerationService = documentationGenerationService;
+        this.testDirectoryCleaner = testDirectoryCleaner;
     }
 
     private static final Logger logger = LoggerFactory.getLogger(GitCoreRunner.class);
@@ -72,7 +81,9 @@ public class GitCoreRunner {
      * @return wynik generacji dokumentacji zawierający README, Architecture i Context File
      * @throws Exception gdy wystąpi błąd podczas analizy lub generacji dokumentacji
      */
-    public DocumentationResult run(String repoUrl, String branch, String workdir) throws Exception {
+    public DocumentationResult run(String repoUrl, String branch, boolean withTest) throws Exception {
+        String temporaryDirName = UUID.randomUUID().toString();
+        String workDir = properties.getWorkdir().concat(File.separator).concat(temporaryDirName);
 
         Path appWorkingDir = Path.of(System.getProperty("user.dir"), "working_directory");
         Path outputFile = appWorkingDir.resolve(properties.getOutput().getMarkdown());
@@ -82,53 +93,54 @@ public class GitCoreRunner {
 
         try (GitAnalysisContext ctx = analysisContext) {
 
-            Git git = ctx.open(properties, workdir, repoUrl);
+            Git git = ctx.open(properties, workDir, repoUrl);
 
             checkoutService.fetchCheckoutPull(git, properties, credentials, branch);
 
+            if(!withTest) {
+                testDirectoryCleaner.clean(ctx.repositoryRoot());
+            }
+
+            Path repoRoot = ctx.repositoryRoot();
+
             GitReport report = new GitReport();
 
-            metaCollector.collect(git, git.getRepository(), properties, repoUrl, branch, workdir, report);
+            metaCollector.collect(git, git.getRepository(), properties, repoUrl, branch, workDir, report);
 
-            fileCollector.collect(git.getRepository(), report);
+            fileCollector.collect(git.getRepository(), report, withTest);
 
             commitCollector.collect(git, git.getRepository(), properties, report);
 
             hotspotsCollector.collect(report);
 
-            // Generuj dokumentację przy użyciu AI
-            Path repoRoot = ctx.repositoryRoot();
             DocumentationResult result = documentationGenerationService.generateDocumentation(report, repoRoot);
 
-            // Zachowaj istniejące zapisywanie plików (dla debug mode zgodnie z PRD)
             markdownWriter.write(report, outputFile);
 
             Path commitHistoryFile =
-                    appWorkingDir.resolve("COMMIT_HISTORY_PAYLOAD.txt");
+                    appWorkingDir.resolve(workDir.concat("COMMIT_HISTORY_PAYLOAD.txt"));
 
             commitHistoryPayloadWriter.write(report, commitHistoryFile);
 
             Path treePayloadFile =
-                    appWorkingDir.resolve("DIRECTORY_TREE_PAYLOAD.txt");
+                    appWorkingDir.resolve(workDir.concat("DIRECTORY_TREE_PAYLOAD.txt"));
 
             directoryTreePayloadWriter.write(report, treePayloadFile);
 
             Path hotspotPayloadFile =
-                    appWorkingDir.resolve("HOTSPOTS_PAYLOAD.txt");
+                    appWorkingDir.resolve(workDir.concat("HOTSPOTS_PAYLOAD.txt"));
 
             hotspotsPayloadWriter.write(report, hotspotPayloadFile);
 
             Path sourceCorpusFile = appWorkingDir.resolve(
-                    "SOURCE_CODE_CORPUS_PAYLOAD.txt"
-            );
+                    workDir.concat("SOURCE_CODE_CORPUS_PAYLOAD.txt"));
 
             sourceCodeCorpusPayloadWriter.write(
                     report,
-                    Path.of(workdir),
+                    Path.of(workDir),
                     sourceCorpusFile
             );
 
-            // Zapisz wygenerowaną dokumentację do plików
             saveDocumentationResult(result, appWorkingDir);
 
             logger.info("Dokumentacja wygenerowana pomyślnie");
@@ -138,6 +150,7 @@ public class GitCoreRunner {
                     result.getArchitecture() != null ? result.getArchitecture().length() : 0);
             logger.debug("Context File długość: {} znaków",
                     result.getAiContextFile() != null ? result.getAiContextFile().length() : 0);
+
 
             return result;
         }

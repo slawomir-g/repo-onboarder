@@ -14,7 +14,7 @@ import java.util.List;
 @Service
 public class GitFileCollector {
 
-    public void collect(Repository repo, GitReport report) throws Exception {
+    public void collect(Repository repo, GitReport report, boolean withTest) throws Exception {
         List<String> files = new ArrayList<>();
 
         try (TreeWalk treeWalk = new TreeWalk(repo)) {
@@ -22,7 +22,14 @@ public class GitFileCollector {
             treeWalk.setRecursive(true);
 
             while (treeWalk.next()) {
-                files.add(treeWalk.getPathString());
+                String path = treeWalk.getPathString();
+                if (!withTest) {
+                    if (!path.endsWith("Test.java")) {
+                        files.add(path);
+                    }
+                } else {
+                    files.add(path);
+                }
             }
         }
 

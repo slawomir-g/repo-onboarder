@@ -1,14 +1,21 @@
 package com.jlabs.repo.onboarder.git;
 
 import com.jlabs.repo.onboarder.config.GitCoreProperties;
+import com.jlabs.repo.onboarder.service.GitCoreRunner;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.transport.CredentialsProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
 import java.nio.file.Path;
 
 @Service
 public class GitAnalysisContext implements AutoCloseable {
+
+    private static final Logger logger = LoggerFactory.getLogger(GitAnalysisContext.class);
 
     private final GitRepositoryManager repositoryManager;
     private Git git;
@@ -22,6 +29,11 @@ public class GitAnalysisContext implements AutoCloseable {
         CredentialsProvider credentials = repositoryManager.credentials(props);
 
         this.git = repositoryManager.openOrClone(props, workDir, repoUrl);
+
+        Repository repository = git.getRepository();
+        File workTree = repository.getWorkTree();
+        String absolutePath = workTree.getAbsolutePath();
+        logger.info(absolutePath);
 
         return this.git;
     }

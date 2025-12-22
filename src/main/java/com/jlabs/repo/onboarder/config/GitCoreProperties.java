@@ -5,6 +5,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "git-core")
 public class GitCoreProperties {
 
+    private String workdir = "repo-work";
+
     private Output output = new Output();
     private Limits limits = new Limits();
     private Auth auth = new Auth();
@@ -17,6 +19,10 @@ public class GitCoreProperties {
 
     public Auth getAuth() { return auth; }
     public void setAuth(Auth auth) { this.auth = auth; }
+
+    public String getWorkdir() { return workdir; }
+
+    public void setWorkdir(String workdir) { this.workdir = workdir; }
 
     public static class Output {
         private String markdown = "git_report.md";

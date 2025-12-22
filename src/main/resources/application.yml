@@ -28,6 +28,7 @@ git-core:
     repoUrl: "https://github.com/3redronin/mu-server.git"
     branch: "master"
     workdir: "repo-work"
+    withTest: false
 
 output:
     markdown: "git_report.md"
