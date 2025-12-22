@@ -118,22 +118,22 @@ public class GitCoreRunner {
             markdownWriter.write(report, outputFile);
 
             Path commitHistoryFile =
-                    appWorkingDir.resolve(workDir.concat("COMMIT_HISTORY_PAYLOAD.txt"));
+                    appWorkingDir.resolve(workDir.concat(File.separator).concat("COMMIT_HISTORY_PAYLOAD.txt"));
 
             commitHistoryPayloadWriter.write(report, commitHistoryFile);
 
             Path treePayloadFile =
-                    appWorkingDir.resolve(workDir.concat("DIRECTORY_TREE_PAYLOAD.txt"));
+                    appWorkingDir.resolve(workDir.concat(File.separator).concat("DIRECTORY_TREE_PAYLOAD.txt"));
 
             directoryTreePayloadWriter.write(report, treePayloadFile);
 
             Path hotspotPayloadFile =
-                    appWorkingDir.resolve(workDir.concat("HOTSPOTS_PAYLOAD.txt"));
+                    appWorkingDir.resolve(workDir.concat(File.separator).concat("HOTSPOTS_PAYLOAD.txt"));
 
             hotspotsPayloadWriter.write(report, hotspotPayloadFile);
 
             Path sourceCorpusFile = appWorkingDir.resolve(
-                    workDir.concat("SOURCE_CODE_CORPUS_PAYLOAD.txt"));
+                    workDir.concat(File.separator).concat("SOURCE_CODE_CORPUS_PAYLOAD.txt"));
 
             sourceCodeCorpusPayloadWriter.write(
                     report,
