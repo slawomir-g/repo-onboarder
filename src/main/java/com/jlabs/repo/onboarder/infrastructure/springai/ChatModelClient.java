@@ -18,23 +18,6 @@ import org.springframework.stereotype.Component;
 
 import org.springframework.ai.chat.metadata.Usage;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.util.Optional;
-
-/**
- * Klient infrastrukturalny odpowiedzialny za komunikację z Spring AI ChatModel.
- * Enkapsuluje wszystkie niskopoziomowe szczegóły komunikacji z AI, w tym:
- * - Wywołania ChatModel API
- * - Retry logic z exponential backoff
- * - Obsługę błędów (rate limit, authentication)
- * - Konwersję ChatResponse na String
- * 
- * Zgodnie z PRD:
- * - Używa Spring Retry z exponential backoff strategy dla API failures
- * - Obsługuje rate limiting z odpowiednimi opóźnieniami
- * - Wyklucza AiRateLimitException i AiApiKeyException z retry
- */
 @Component
 public class ChatModelClient {
 
@@ -47,49 +30,6 @@ public class ChatModelClient {
         this.chatModel = chatModel;
         this.aiProperties = aiProperties;
     }
-
-    /**
-     * Wywołuje API z exponential backoff retry strategy używając Spring Retry.
-     * Zgodnie z PRD: exponential backoff z konfigurowalnymi parametrami.
-     * 
-     * Spring Retry automatycznie obsługuje retry z exponential backoff na podstawie
-     * konfiguracji w AiProperties. Wyjątki AiRateLimitException i AiApiKeyException
-     * są wykluczone z retry i rzucane natychmiast.
-     * 
-     * @param promptText tekst promptu do wysłania
-     * @return odpowiedź tekstowa z API
-     * @throws AiException gdy wyczerpano wszystkie próby retry
-     * @throws AiRateLimitException gdy wystąpi rate limiting (nie retryowane)
-     * @throws AiApiKeyException gdy wystąpi błąd autoryzacji (nie retryowane)
-     */
-    @Retryable(
-            maxAttemptsExpression = "#{@aiProperties.retry.maxAttempts}",
-            noRetryFor = {AiRateLimitException.class, AiApiKeyException.class},
-            backoff = @Backoff(
-                    delayExpression = "#{@aiProperties.retry.initialDelayMs}",
-                    multiplierExpression = "#{@aiProperties.retry.multiplier}",
-                    maxDelayExpression = "#{@aiProperties.retry.maxDelayMs}"
-            )
-    )
-    public String call(String promptText) {
-        return call(promptText, null);
-    }
-
-    /**
-     * Wywołuje API z dodatkowymi opcjami (np. cached content) i exponential backoff retry strategy.
-     * 
-     * Ta metoda pozwala na przekazanie dodatkowych opcji do wywołania API, takich jak:
-     * - Cached content name (dla wykorzystania cache'owanych kontekstów)
-     * - Custom model settings
-     * - Inne opcje specyficzne dla Google GenAI
-     * 
-     * @param promptText tekst promptu do wysłania
-     * @param options opcje wywołania API (może być null dla domyślnych ustawień)
-     * @return odpowiedź tekstowa z API
-     * @throws AiException gdy wyczerpano wszystkie próby retry
-     * @throws AiRateLimitException gdy wystąpi rate limiting (nie retryowane)
-     * @throws AiApiKeyException gdy wystąpi błąd autoryzacji (nie retryowane)
-     */
     @Retryable(
             maxAttemptsExpression = "#{@aiProperties.retry.maxAttempts}",
             noRetryFor = {AiRateLimitException.class, AiApiKeyException.class},
@@ -103,29 +43,16 @@ public class ChatModelClient {
         logger.debug("Wywołanie API Gemini" + (options != null ? " z opcjami" : ""));
 
         try {
-            // Szacuj i loguj informacje o promptcie przed wysłaniem
-            long estimatedTokens = logPromptTokenEstimation(promptText);
-            
-            // Utwórz prompt z opcjami jeśli zostały przekazane
-            Prompt prompt;
-            if (options != null) {
-                prompt = new Prompt(promptText, options);
-                
-                // Loguj informacje o używaniu cached content
-                if (options.getUseCachedContent() != null && options.getUseCachedContent()) {
-                    logger.info("Używanie cached content: {}", options.getCachedContentName());
-                }
-            } else {
-                prompt = new Prompt(promptText);
-            }
-            
-            ChatResponse response = chatModel.call(prompt);
-            
-            // Loguj rzeczywistą liczbę tokenów z odpowiedzi (jeśli dostępna)
-            logActualTokenUsage(response, estimatedTokens);
 
-            // Wyciągnij tekst odpowiedzi z ChatResponse
-            return extractResponseText(response, promptText);
+            long estimatedTokens = logPromptTokenEstimation(promptText);
+
+            Prompt prompt = new Prompt(promptText, options);
+
+            ChatResponse response = chatModel.call(prompt);
+
+            logActualTokenUsage(response);
+
+            return response.getResult().getOutput().getText();
 
         } catch (Exception e) {
             logger.warn("Błąd podczas wywołania API: {}", e.getMessage());
@@ -164,12 +91,7 @@ public class ChatModelClient {
                 e);
     }
 
-    /**
-     * Szacuje liczbę tokenów w promptcie, loguje informacje i ostrzega jeśli prompt jest zbyt duży.
-     * 
-     * @param promptText tekst promptu do analizy
-     * @return szacowana liczba tokenów
-     */
+
     private long logPromptTokenEstimation(String promptText) {
         long estimatedTokens = estimateTokenCount(promptText);
         int promptLength = promptText.length();
@@ -177,44 +99,8 @@ public class ChatModelClient {
         
         logger.info("Przygotowanie do wysłania promptu: {} znaków ({} KB), szacowana liczba tokenów: ~{}",
                 promptLength, String.format("%.2f", promptSizeKB), estimatedTokens);
-        
+
         return estimatedTokens;
-    }
-
-    /**
-     * Wyciąga tekst odpowiedzi z ChatResponse, obsługując różne przypadki braku generacji.
-     * 
-     * @param response odpowiedź z API
-     * @param promptText tekst promptu (używany do logowania błędów)
-     * @return tekst odpowiedzi z API
-     * @throws AiException gdy odpowiedź nie zawiera generacji
-     */
-    private String extractResponseText(ChatResponse response, String promptText) {
-        // Sprawdź czy odpowiedź zawiera generacje
-        if (response.getResult() == null) {
-            // Sprawdź czy lista generacji jest pusta
-            if (response.getResults() == null || response.getResults().isEmpty()) {
-                logger.error("Otrzymano pustą odpowiedź z API - brak generacji. Metadata: {}",
-                        response.getMetadata());
-                logger.error("Długość promptu: {} znaków ({} KB)",
-                        promptText.length(), promptText.length() / 1024);
-                throw new AiException("API zwróciło pustą odpowiedź - brak generacji. " +
-                        "Możliwe przyczyny: zbyt długi prompt (" + (promptText.length() / 1024) + " KB), " +
-                        "limit tokenów przekroczony, lub błąd modelu. Metadata: " + response.getMetadata());
-            }
-            // Jeśli getResult() zwraca null, ale lista nie jest pusta, użyj pierwszego elementu
-            String responseText = response.getResults().get(0).getOutput().getText();
-            logger.debug("Otrzymano odpowiedź z API (użyto getResults()), długość: {} znaków",
-                    responseText != null ? responseText.length() : 0);
-            return responseText;
-        }
-
-        // Wyciągnij tekst odpowiedzi
-        String responseText = response.getResult().getOutput().getText();
-        logger.debug("Otrzymano odpowiedź z API, długość: {} znaków",
-                responseText != null ? responseText.length() : 0);
-
-        return responseText;
     }
 
     /**
@@ -240,14 +126,8 @@ public class ChatModelClient {
         return Math.round(text.length() / 3.5);
     }
 
-    /**
-     * Loguje rzeczywistą liczbę tokenów z odpowiedzi API (jeśli dostępna w metadata).
-     * Porównuje z szacowaną wartością dla celów diagnostycznych.
-     * 
-     * @param response odpowiedź z API
-     * @param estimatedTokens szacowana liczba tokenów użyta przed wysłaniem
-     */
-    private void logActualTokenUsage(ChatResponse response, long estimatedTokens) {
+
+    private void logActualTokenUsage(ChatResponse response) {
         try {
             Usage usage = response.getMetadata().getUsage();
             if (usage == null) {
@@ -256,8 +136,7 @@ public class ChatModelClient {
             }
 
             var totalTokens = usage.getTotalTokens();
-            if(usage.getNativeUsage() instanceof com.google.genai.types.GenerateContentResponseUsageMetadata) {
-                var nativeUsage = (com.google.genai.types.GenerateContentResponseUsageMetadata) usage.getNativeUsage();
+            if(usage.getNativeUsage() instanceof com.google.genai.types.GenerateContentResponseUsageMetadata nativeUsage) {
                 var cachedTokens = nativeUsage.cachedContentTokenCount().orElse(0);
                 Long paidTokens = (long) totalTokens - cachedTokens;
 
@@ -272,12 +151,6 @@ public class ChatModelClient {
         }
     }
 
-    /**
-     * Sprawdza czy wyjątek jest związany z rate limiting (429).
-     * 
-     * @param e wyjątek do sprawdzenia
-     * @return true jeśli to rate limit error
-     */
     private boolean isRateLimitError(Exception e) {
         String message = e.getMessage();
         if (message == null) {
@@ -288,12 +161,6 @@ public class ChatModelClient {
                message.toLowerCase().contains("quota exceeded");
     }
 
-    /**
-     * Sprawdza czy wyjątek jest związany z autoryzacją (401).
-     * 
-     * @param e wyjątek do sprawdzenia
-     * @return true jeśli to authentication error
-     */
     private boolean isAuthenticationError(Exception e) {
         String message = e.getMessage();
         if (message == null) {

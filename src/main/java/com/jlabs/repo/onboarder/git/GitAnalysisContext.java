@@ -1,10 +1,8 @@
 package com.jlabs.repo.onboarder.git;
 
 import com.jlabs.repo.onboarder.config.GitCoreProperties;
-import com.jlabs.repo.onboarder.service.GitCoreRunner;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.lib.Repository;
-import org.eclipse.jgit.transport.CredentialsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -25,8 +23,6 @@ public class GitAnalysisContext implements AutoCloseable {
     }
 
     public Git open(GitCoreProperties props, String workDir, String repoUrl) throws Exception {
-
-        CredentialsProvider credentials = repositoryManager.credentials(props);
 
         this.git = repositoryManager.openOrClone(props, workDir, repoUrl);
 

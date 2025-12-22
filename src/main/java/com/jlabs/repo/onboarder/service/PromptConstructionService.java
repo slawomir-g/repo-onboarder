@@ -83,7 +83,7 @@ public class PromptConstructionService {
     ) {
         try {
 
-            String repositoryContextXml = preapreRepositoryContext(report, repoRoot);
+            String repositoryContextXml = prepareRepositoryContext(report, repoRoot);
 
             String documentationTemplate = loadDocumentationTemplate(documentationTemplatePath);
 
@@ -108,20 +108,33 @@ public class PromptConstructionService {
     }
 
 
-    /**
-     * Konstruuje prompt dla AI modelu wykorzystując cached content.
-     * <p>
-     * Cached content zawiera już repository context XML, więc tutaj budujemy tylko
-     * prompt z AI documentation template i instrukcjami. Cached content zostanie
-     * automatycznie dołączony jako system instruction przez Google GenAI API.
-     *
-     * @param cachedContentName nazwa cached content do użycia
-     * @return prompt jako String (tylko AI documentation template, bez repository context)
-     * @throws PromptConstructionException gdy nie można wczytać template'ów
-     */
-    public String constructPromptWithCache(String cachedContentName) {
-        // Kompatybilność wsteczna: domyślnie korzystamy z template'ów dla AI Context File.
-        return constructPromptWithCache(cachedContentName, AI_CONTEXT_PROMPT_TEMPLATE_PATH, AI_CONTEXT_DOCUMENTATION_TEMPLATE_PATH);
+    public String prepareRepositoryContext(GitReport report, Path repoRoot) {
+        String directoryTreePayload = directoryTreePayloadWriter.generate(report);
+        String hotspotsPayload = hotspotsPayloadWriter.generate(report);
+        String commitHistoryPayload = commitHistoryPayloadWriter.generate(report);
+        String sourceCodeCorpusPayload = sourceCodeCorpusPayloadWriter.generate(report, repoRoot);
+        String projectName = extractProjectName(report.repo.url);
+
+        PromptTemplate repositoryContextTemplate = PromptTemplate.builder()
+                .renderer(StTemplateRenderer.builder()
+                        .startDelimiterToken(PLACEHOLDER_TOKEN)
+                        .endDelimiterToken(PLACEHOLDER_TOKEN)
+                        .build())
+                .resource(new ClassPathResource(REPOSITORY_CONTEXT_TEMPLATE_PATH))
+                .build();
+
+        String repositoryContextXml = repositoryContextTemplate.render(Map.of(
+                "PROJECT_NAME_PAYLOAD_PLACEHOLDER", projectName,
+                "ANALYSIS_TIMESTAMP_PAYLOAD_PLACEHOLDER",
+                TIMESTAMP_FORMATTER.format(report.generatedAt),
+                "BRANCH_PAYLOAD_PLACEHOLDER",
+                report.repo.branch != null ? report.repo.branch : "main",
+                "DIRECTORY_TREE_PAYLOAD_PLACEHOLDER", directoryTreePayload,
+                "HOTSPOTS_PAYLOAD_PLACEHOLDER", hotspotsPayload,
+                "COMMIT_HISTORY_PAYLOAD_PLACEHOLDER", commitHistoryPayload,
+                "SOURCE_CODE_CORPUS_PAYLOAD_PLACEHOLDER", sourceCodeCorpusPayload
+        ));
+        return repositoryContextXml;
     }
 
     /**
@@ -177,73 +190,13 @@ public class PromptConstructionService {
         }
     }
 
-    /**
-     * Przygotowuje XML z kontekstem repozytorium (directory tree, hotspots, commits, source code).
-     * <p>
-     * Ta metoda jest używana do:
-     * 1. Tworzenia cached content (XML jest zapisywany w cache po stronie Google)
-     * 2. Tworzenia pełnego promptu gdy cache nie istnieje
-     *
-     * @param report   raport z analizy Git repozytorium
-     * @param repoRoot ścieżka do katalogu głównego repozytorium
-     * @return XML z pełnym kontekstem repozytorium
-     */
-    public String prepareRepositoryContext(GitReport report, Path repoRoot) {
-        return preapreRepositoryContext(report, repoRoot);
-    }
 
-    /**
-     * Wczytuje z classpath template instrukcji/struktury dokumentu.
-     * <p>
-     * Wyjaśnienie:
-     * - Template dokumentacji (np. skeleton README albo skeleton AI Context File) trzymamy jako zasób w classpath,
-     * aby był wersjonowany razem z aplikacją i możliwy do łatwej edycji bez zmian w kodzie.
-     * - Przyjmujemy ścieżkę jako argument, dzięki czemu ta sama logika działa dla wielu typów dokumentów.
-     */
     private String loadDocumentationTemplate(String documentationTemplatePath) throws Exception {
         ClassPathResource docTemplateResource = new ClassPathResource(documentationTemplatePath);
         return docTemplateResource.getContentAsString(StandardCharsets.UTF_8);
     }
 
-    private String preapreRepositoryContext(GitReport report, Path repoRoot) {
-        String directoryTreePayload = directoryTreePayloadWriter.generate(report);
-        String hotspotsPayload = hotspotsPayloadWriter.generate(report);
-        String commitHistoryPayload = commitHistoryPayloadWriter.generate(report);
-        String sourceCodeCorpusPayload = sourceCodeCorpusPayloadWriter.generate(report, repoRoot);
-        String projectName = extractProjectName(report.repo.url);
 
-        PromptTemplate repositoryContextTemplate = PromptTemplate.builder()
-                .renderer(StTemplateRenderer.builder()
-                        .startDelimiterToken(PLACEHOLDER_TOKEN)
-                        .endDelimiterToken(PLACEHOLDER_TOKEN)
-                        .build())
-                .resource(new ClassPathResource(REPOSITORY_CONTEXT_TEMPLATE_PATH))
-                .build();
-
-        String repositoryContextXml = repositoryContextTemplate.render(Map.of(
-                "PROJECT_NAME_PAYLOAD_PLACEHOLDER", projectName,
-                "ANALYSIS_TIMESTAMP_PAYLOAD_PLACEHOLDER",
-                TIMESTAMP_FORMATTER.format(report.generatedAt),
-                "BRANCH_PAYLOAD_PLACEHOLDER",
-                report.repo.branch != null ? report.repo.branch : "main",
-                "DIRECTORY_TREE_PAYLOAD_PLACEHOLDER", directoryTreePayload,
-                "HOTSPOTS_PAYLOAD_PLACEHOLDER", hotspotsPayload,
-                "COMMIT_HISTORY_PAYLOAD_PLACEHOLDER", commitHistoryPayload,
-                "SOURCE_CODE_CORPUS_PAYLOAD_PLACEHOLDER", sourceCodeCorpusPayload
-        ));
-        return repositoryContextXml;
-    }
-
-    /**
-     * Wyciąga nazwę projektu z URL repozytorium Git.
-     * Przykłady:
-     * - "https://github.com/user/repo.git" -> "repo"
-     * - "https://github.com/user/repo-onboarder.git" -> "repo-onboarder"
-     * - "git@github.com:user/repo.git" -> "repo"
-     *
-     * @param repoUrl URL repozytorium
-     * @return nazwa projektu lub "unknown-project" jeśli nie można wyciągnąć
-     */
     private String extractProjectName(String repoUrl) {
         if (repoUrl == null || repoUrl.isBlank()) {
             return "unknown-project";

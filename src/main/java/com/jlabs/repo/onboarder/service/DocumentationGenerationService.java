@@ -74,7 +74,7 @@ public class DocumentationGenerationService {
         // 2.1 Post-processing - dodaj sekcję Project Structure
         aiContextFile = documentationPostProcessingService.enhance(aiContextFile, report);
 
-        saveDebugFile("ai_context_debug.txt", aiContextFile);
+        saveDebugFile(repoRoot, "generated_context_file_debug.md", aiContextFile);
         
         // 3. Wygeneruj README
         String readme = generateSingleDocument(
@@ -83,7 +83,7 @@ public class DocumentationGenerationService {
                 PromptConstructionService.README_DOCUMENTATION_TEMPLATE_PATH,
                 report,
                 repoRoot);
-        saveDebugFile("readme_debug.txt", readme);
+        saveDebugFile(repoRoot,"enerated_readme_file_debug.md", readme);
 
         // 4. Złóż wynik
         DocumentationResult result = new DocumentationResult();
@@ -125,7 +125,7 @@ public class DocumentationGenerationService {
 
         // Przygotuj repository context XML
         String repoContextXml = promptConstructionService.prepareRepositoryContext(report, repoRoot);
-        saveDebugFile("ai_context_prompt_debug.txt", repoContextXml);
+        saveDebugFile(repoRoot, "ai_context_prompt_debug.txt", repoContextXml);
 
         // Spróbuj utworzyć cached content
         String newCacheName = repositoryCacheService.createCachedContent(repoUrl, repoContextXml, model);
@@ -157,7 +157,7 @@ public class DocumentationGenerationService {
             Path repoRoot) {
 
         String promptText;
-        GoogleGenAiChatOptions chatOptions = null;
+        GoogleGenAiChatOptions chatOptions;
 
         if (cacheName != null) {
             // Cache dostępny - użyj cached content
@@ -227,14 +227,13 @@ public class DocumentationGenerationService {
      * Zapisuje zawartość do pliku w katalogu working_directory w celach debugowania.
      * Metoda nie przerywa głównego flow w przypadku błędów - tylko loguje ostrzeżenia.
      *
+     * @param repoRoot
      * @param filename nazwa pliku do zapisania
      * @param content  zawartość do zapisania
      */
-    private void saveDebugFile(String filename, String content) {
+    private void saveDebugFile(Path repoRoot, String filename, String content) {
         try {
-            Path appWorkingDir = Path.of(System.getProperty("user.dir"), "working_directory");
-            Files.createDirectories(appWorkingDir);
-            Path debugFile = appWorkingDir.resolve(filename);
+            Path debugFile = repoRoot.resolve(filename);
             Files.writeString(debugFile, content, StandardCharsets.UTF_8);
             logger.debug("Zapisano plik debugowania: {}", debugFile);
         } catch (Exception e) {

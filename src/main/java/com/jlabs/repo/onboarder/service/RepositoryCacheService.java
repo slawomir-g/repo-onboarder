@@ -151,7 +151,6 @@ public class RepositoryCacheService {
         }
         
         String cacheName = getCacheNameForRepository(repoUrl);
-
         
         try {
             logger.info("Tworzenie nowego cache dla repo '{}' (display name: '{}')", repoUrl, cacheName);
@@ -190,60 +189,6 @@ public class RepositoryCacheService {
         } catch (Exception e) {
             logger.error("Nie udało się utworzyć cache dla repo '{}': {}", repoUrl, e.getMessage(), e);
             throw new RuntimeException("Nie udało się utworzyć cached content: " + e.getMessage(), e);
-        }
-    }
-
-    /**
-     * Usuwa (invaliduje) cache dla repozytorium.
-     * 
-     * @param repoUrl URL repozytorium Git
-     * @return true jeśli cache został usunięty, false jeśli nie istniał lub cache jest wyłączony
-     */
-    public boolean invalidateCache(String repoUrl) {
-        if (!cacheEnabled) {
-            logger.warn("Cache jest wyłączony - nie można usunąć cache");
-            return false;
-        }
-        
-        Optional<String> cachedContentName = getCachedContentName(repoUrl);
-        
-        if (cachedContentName.isPresent()) {
-            try {
-                boolean deleted = cachedContentService.delete(cachedContentName.get());
-                if (deleted) {
-                    logger.info("Usunięto cache dla repo '{}'", repoUrl);
-                } else {
-                    logger.warn("Nie udało się usunąć cache dla repo '{}'", repoUrl);
-                }
-                return deleted;
-            } catch (Exception e) {
-                logger.error("Błąd podczas usuwania cache dla repo '{}': {}", repoUrl, e.getMessage(), e);
-                return false;
-            }
-        }
-        
-        logger.info("Cache dla repo '{}' nie istnieje, nie ma czego usuwać", repoUrl);
-        return false;
-    }
-
-    /**
-     * Czyści wszystkie wygasłe cache'e z systemu.
-     * 
-     * @return liczba usuniętych cache'y, lub 0 jeśli cache jest wyłączony
-     */
-    public int cleanupExpiredCaches() {
-        if (!cacheEnabled) {
-            logger.warn("Cache jest wyłączony - nie można wyczyścić cache");
-            return 0;
-        }
-        
-        try {
-            int removedCount = cachedContentService.cleanupExpired();
-            logger.info("Wyczyszczono {} wygasłych cache'y", removedCount);
-            return removedCount;
-        } catch (Exception e) {
-            logger.error("Błąd podczas czyszczenia wygasłych cache'y: {}", e.getMessage(), e);
-            return 0;
         }
     }
 

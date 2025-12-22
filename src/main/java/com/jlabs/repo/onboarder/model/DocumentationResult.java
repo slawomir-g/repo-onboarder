@@ -33,12 +33,6 @@ public class DocumentationResult {
     public DocumentationResult() {
     }
 
-    public DocumentationResult(String readme, String architecture, String aiContextFile) {
-        this.readme = readme;
-        this.architecture = architecture;
-        this.aiContextFile = aiContextFile;
-    }
-
     public String getReadme() {
         return readme;
     }

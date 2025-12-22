@@ -8,6 +8,7 @@ import com.jlabs.repo.onboarder.model.GitReport;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.transport.CredentialsProvider;
+import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -97,49 +98,17 @@ public class GitCoreRunner {
 
             checkoutService.fetchCheckoutPull(git, properties, credentials, branch);
 
-            if(!withTest) {
+            if (!withTest) {
                 testDirectoryCleaner.clean(ctx.repositoryRoot());
             }
 
             Path repoRoot = ctx.repositoryRoot();
 
-            GitReport report = new GitReport();
-
-            metaCollector.collect(git, git.getRepository(), properties, repoUrl, branch, workDir, report);
-
-            fileCollector.collect(git.getRepository(), report, withTest);
-
-            commitCollector.collect(git, git.getRepository(), properties, report);
-
-            hotspotsCollector.collect(report);
+            GitReport report = createGitReport(repoUrl, branch, withTest, git, workDir);
 
             DocumentationResult result = documentationGenerationService.generateDocumentation(report, repoRoot);
 
             markdownWriter.write(report, outputFile);
-
-            Path commitHistoryFile =
-                    appWorkingDir.resolve(workDir.concat(File.separator).concat("COMMIT_HISTORY_PAYLOAD.txt"));
-
-            commitHistoryPayloadWriter.write(report, commitHistoryFile);
-
-            Path treePayloadFile =
-                    appWorkingDir.resolve(workDir.concat(File.separator).concat("DIRECTORY_TREE_PAYLOAD.txt"));
-
-            directoryTreePayloadWriter.write(report, treePayloadFile);
-
-            Path hotspotPayloadFile =
-                    appWorkingDir.resolve(workDir.concat(File.separator).concat("HOTSPOTS_PAYLOAD.txt"));
-
-            hotspotsPayloadWriter.write(report, hotspotPayloadFile);
-
-            Path sourceCorpusFile = appWorkingDir.resolve(
-                    workDir.concat(File.separator).concat("SOURCE_CODE_CORPUS_PAYLOAD.txt"));
-
-            sourceCodeCorpusPayloadWriter.write(
-                    report,
-                    Path.of(workDir),
-                    sourceCorpusFile
-            );
 
             saveDocumentationResult(result, appWorkingDir);
 
@@ -156,15 +125,19 @@ public class GitCoreRunner {
         }
     }
 
-    /**
-     * Zapisuje wynik generacji dokumentacji do plików.
-     * Zapisuje trzy pliki: README.md, ARCHITECTURE.md i AI_CONTEXT_FILE.md
-     * zgodnie z formatem używanym przez inne payload writers.
-     * 
-     * @param result wynik generacji dokumentacji
-     * @param outputDir katalog docelowy dla plików
-     * @throws IOException gdy wystąpi błąd podczas zapisu plików
-     */
+    private @NonNull GitReport createGitReport(String repoUrl, String branch, boolean withTest, Git git, String workDir) throws Exception {
+        GitReport report = new GitReport();
+
+        metaCollector.collect(git, git.getRepository(), properties, repoUrl, branch, workDir, report);
+
+        fileCollector.collect(git.getRepository(), report, withTest);
+
+        commitCollector.collect(git, git.getRepository(), properties, report);
+
+        hotspotsCollector.collect(report);
+        return report;
+    }
+
     private void saveDocumentationResult(DocumentationResult result, Path outputDir) throws IOException {
         Files.createDirectories(outputDir);
 
