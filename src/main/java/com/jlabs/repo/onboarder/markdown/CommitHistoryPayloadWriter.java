@@ -28,6 +28,8 @@ public class CommitHistoryPayloadWriter {
         report.commits.forEach(c -> {
             sb.append("<commit date='")
                     .append(c.committerTime)
+                    .append("' committer='")
+                    .append(escape(c.committerName))
                     .append("'>")
                     .append(escape(c.messageShort))
                     .append("</commit>")

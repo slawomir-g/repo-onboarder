@@ -49,3 +49,9 @@
 
 ## Recent Development Focus
 [Summary of recent development activity, focus primarly on domain changes, new dependencies etc. upgrading libraries is not so important]
+
+## Key Contributors
+
+- **[Contributor Name]:** [Areas of focus or expertise, key contributions based on available data]
+- **[Contributor Name]:** [Areas of focus or expertise, key contributions based on available data]
+[List top 3-5 contributors]
