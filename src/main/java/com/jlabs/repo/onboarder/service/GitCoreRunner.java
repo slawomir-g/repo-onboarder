@@ -119,8 +119,8 @@ public class GitCoreRunner {
             logger.info("Dokumentacja wygenerowana pomyślnie");
             logger.debug("README długość: {} znaków",
                     result.getReadme() != null ? result.getReadme().length() : 0);
-            logger.debug("Architecture długość: {} znaków",
-                    result.getArchitecture() != null ? result.getArchitecture().length() : 0);
+            logger.debug("Refactorings długość: {} znaków",
+                    result.getRefactorings() != null ? result.getRefactorings().length() : 0);
             logger.debug("Context File długość: {} znaków",
                     result.getAiContextFile() != null ? result.getAiContextFile().length() : 0);
 
@@ -151,10 +151,10 @@ public class GitCoreRunner {
             Files.writeString(readmeFile, result.getReadme(), StandardCharsets.UTF_8);
         }
 
-        // Zapisz ARCHITECTURE.md
-        if (result.getArchitecture() != null && !result.getArchitecture().isBlank()) {
-            Path architectureFile = outputDir.resolve("ARCHITECTURE.md");
-            Files.writeString(architectureFile, result.getArchitecture(), StandardCharsets.UTF_8);
+        // Zapisz REFACTORINGS.md
+        if (result.getRefactorings() != null && !result.getRefactorings().isBlank()) {
+            Path refactoringsFile = outputDir.resolve("REFACTORINGS.md");
+            Files.writeString(refactoringsFile, result.getRefactorings(), StandardCharsets.UTF_8);
         }
 
         // Zapisz AI_CONTEXT_FILE.md

@@ -91,10 +91,21 @@ public class DocumentationGenerationService {
                 debugOutputDir); // Pass debugOutputDir
         saveDebugFile(debugOutputDir, "generated_readme_file_debug.md", readme);
 
+        // 3. Wygeneruj README
+        String refactorings = generateSingleDocument(
+                repositoryContentCacheName,
+                PromptConstructionService.REFACTORING_PROMPT_TEMPLATE_PATH,
+                PromptConstructionService.REFACTORING_DOCUMENTATION_TEMPLATE_PATH,
+                report,
+                repoRoot,
+                debugOutputDir); // Pass debugOutputDir
+        saveDebugFile(debugOutputDir, "generated_refactoring_file_debug.md", refactorings);
+
         // 4. Złóż wynik
         DocumentationResult result = new DocumentationResult();
         result.setAiContextFile(aiContextFile);
         result.setReadme(readme);
+        result.setRefactorings(refactorings);
 
         logger.info("Dokumentacja wygenerowana pomyślnie");
         logger.debug("AI Context File długość: {} znaków",

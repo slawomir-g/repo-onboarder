@@ -167,18 +167,18 @@
 
       <div id="errorMsg" class="error"></div>
 
-      <div id="results" class="result-section">
+        <div id="results" class="result-section">
         <div class="tabs">
           <div class="tab active" onclick="switchTab('readme')">README.md</div>
-          <div class="tab" onclick="switchTab('architecture')">
-            Architecture
+          <div class="tab" onclick="switchTab('refactorings')">
+            Refactorings
           </div>
           <div class="tab" onclick="switchTab('context')">AI Context</div>
         </div>
 
         <div id="readme-content" class="tab-content active markdown-body"></div>
-        <div id="architecture-content" class="tab-content markdown-body"></div>
         <div id="context-content" class="tab-content markdown-body"></div>
+        <div id="refactorings-content" class="tab-content markdown-body"></div>
       </div>
     </div>
 
@@ -250,8 +250,8 @@
         document.getElementById("readme-content").innerHTML = marked.parse(
           data.readme || "*No README generated*"
         );
-        document.getElementById("architecture-content").innerHTML =
-          marked.parse(data.architecture || "*No Architecture doc generated*");
+        document.getElementById("refactorings-content").innerHTML =
+          marked.parse(data.refactorings || "*No Refactorings generated*");
         document.getElementById("context-content").innerHTML = marked.parse(
           data.aiContextFile || "*No Context file generated*"
         );
@@ -277,9 +277,9 @@
 
         if (tabName === "readme") {
           document.getElementById("readme-content").classList.add("active");
-        } else if (tabName === "architecture") {
+        } else if (tabName === "refactorings") {
           document
-            .getElementById("architecture-content")
+            .getElementById("refactorings-content")
             .classList.add("active");
         } else {
           document.getElementById("context-content").classList.add("active");

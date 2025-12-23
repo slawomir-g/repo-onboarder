@@ -14,15 +14,16 @@ public class DocumentationResult {
 
     /**
      * Zawartość README.md w formacie Markdown.
-     * Zawiera przegląd projektu, instrukcje setupu i kluczowe informacje dla deweloperów.
+     * Zawiera przegląd projektu, instrukcje setupu i kluczowe informacje dla
+     * deweloperów.
      */
     private String readme;
 
     /**
-     * Dokumentacja architektury w formacie Markdown.
-     * Zawiera szczegółowy opis architektury, wzorców projektowych i struktury projektu.
+     * Dokumentacja refaktoryzacji w formacie Markdown.
+     * Zawiera sugestie zmian w kodzie.
      */
-    private String architecture;
+    private String refactorings;
 
     /**
      * Plik kontekstu zoptymalizowany dla AI coding assistants.
@@ -41,12 +42,12 @@ public class DocumentationResult {
         this.readme = readme;
     }
 
-    public String getArchitecture() {
-        return architecture;
+    public String getRefactorings() {
+        return refactorings;
     }
 
-    public void setArchitecture(String architecture) {
-        this.architecture = architecture;
+    public void setRefactorings(String refactorings) {
+        this.refactorings = refactorings;
     }
 
     public String getAiContextFile() {
@@ -57,4 +58,3 @@ public class DocumentationResult {
         this.aiContextFile = contextFile;
     }
 }
-

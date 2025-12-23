@@ -27,10 +27,15 @@ public class PromptConstructionService {
 
     private static final char PLACEHOLDER_TOKEN = '$';
     private static final String REPOSITORY_CONTEXT_TEMPLATE_PATH = "prompts/repository-context-payload-template.xml";
+
     public static final String AI_CONTEXT_PROMPT_TEMPLATE_PATH = "prompts/ai-context-prompt-template.md";
     public static final String AI_CONTEXT_DOCUMENTATION_TEMPLATE_PATH = "prompts/ai-context-documentation-template.md";
+
     public static final String README_PROMPT_TEMPLATE_PATH = "prompts/readme-prompt-template.md";
     public static final String README_DOCUMENTATION_TEMPLATE_PATH = "prompts/readme-documentation-template.md";
+
+    public static final String REFACTORING_PROMPT_TEMPLATE_PATH = "prompts/refactoring-documentation-template.md";
+    public static final String REFACTORING_DOCUMENTATION_TEMPLATE_PATH = "prompts/refactoring-documentation-template.md";
 
     /**
      * Nazwa placeholdera w prompt template, pod którym wstrzykujemy instrukcje/strukturę dokumentu
