@@ -51,7 +51,18 @@
 [Summary of recent development activity, focus primarly on domain changes, new dependencies etc. upgrading libraries is not so important]
 
 ## Key Contributors
-
 - **[Contributor Name]:** [Areas of focus or expertise, key contributions based on available data]
 - **[Contributor Name]:** [Areas of focus or expertise, key contributions based on available data]
 [List top 3-5 contributors]
+
+## Potential Complexity/Areas to Note
+- **[Complex Area]:** [Description of why this area might be complex (e.g., core domain logic, concurrency, state management, external system integration) and what to watch out for]
+- **[Complex Area]:** [Description of why this area might be complex and what to watch out for]
+- **[Complex Area]:** [Description of why this area might be complex and what to watch out for]
+
+## Helpful Resources
+- **Documentation:** [Actual link(s) found, or state "Primary documentation link not found"]
+- **Issue Tracker:** [Actual link(s) found, e.g., GitHub Issues URL, Jira Project URL]
+- **Contribution Guide:** [Actual link(s) found]
+- **Communication Channels:** [Actual link(s) found, e.g., Slack invite, mailing list archive]
+- **Learning Resources:** [Actual link(s) found, or state "Specific learning resources section not found"]

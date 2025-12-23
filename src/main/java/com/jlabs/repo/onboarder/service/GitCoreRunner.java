@@ -18,6 +18,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
 @Service
@@ -75,22 +77,21 @@ public class GitCoreRunner {
 
     private static final Logger logger = LoggerFactory.getLogger(GitCoreRunner.class);
 
-
     /**
-     * Wykonuje pełną analizę repozytorium Git i generuje dokumentację przy użyciu AI.
+     * Wykonuje pełną analizę repozytorium Git i generuje dokumentację przy użyciu
+     * AI.
      *
-     * @return wynik generacji dokumentacji zawierający README, Architecture i Context File
+     * @return wynik generacji dokumentacji zawierający README, Architecture i
+     *         Context File
      * @throws Exception gdy wystąpi błąd podczas analizy lub generacji dokumentacji
      */
     public DocumentationResult run(String repoUrl, String branch, boolean withTest) throws Exception {
-        String temporaryDirName = UUID.randomUUID().toString();
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+        String temporaryDirName = timestamp + "_" + UUID.randomUUID();
         String workDir = properties.getWorkdir().concat(File.separator).concat(temporaryDirName);
 
-        Path appWorkingDir = Path.of(System.getProperty("user.dir"), "working_directory");
-        Path outputFile = appWorkingDir.resolve(properties.getOutput().getMarkdown());
-
-        CredentialsProvider credentials =
-                repositoryManager.credentials(properties);
+        Path appWorkingDir = Path.of(workDir, "working_directory");
+        CredentialsProvider credentials = repositoryManager.credentials(properties);
 
         try (GitAnalysisContext ctx = analysisContext) {
 
@@ -108,8 +109,6 @@ public class GitCoreRunner {
 
             DocumentationResult result = documentationGenerationService.generateDocumentation(report, repoRoot);
 
-            markdownWriter.write(report, outputFile);
-
             saveDocumentationResult(result, appWorkingDir);
 
             logger.info("Dokumentacja wygenerowana pomyślnie");
@@ -120,12 +119,12 @@ public class GitCoreRunner {
             logger.debug("Context File długość: {} znaków",
                     result.getAiContextFile() != null ? result.getAiContextFile().length() : 0);
 
-
             return result;
         }
     }
 
-    private @NonNull GitReport createGitReport(String repoUrl, String branch, boolean withTest, Git git, String workDir) throws Exception {
+    private @NonNull GitReport createGitReport(String repoUrl, String branch, boolean withTest, Git git, String workDir)
+            throws Exception {
         GitReport report = new GitReport();
 
         metaCollector.collect(git, git.getRepository(), properties, repoUrl, branch, workDir, report);
@@ -160,4 +159,3 @@ public class GitCoreRunner {
         }
     }
 }
-

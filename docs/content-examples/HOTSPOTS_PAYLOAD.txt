@@ -1,2 +1,0 @@
-<file path="src/main/java/io/muserver/murp/Murp.java" churn_score="85" />
-<file path="path="src/main/java/io/muserver/murp/RequestInterceptor.java" churn_score="72" />

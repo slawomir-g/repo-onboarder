@@ -15,7 +15,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
 
-
 @Service
 public class DocumentationGenerationService {
 
@@ -41,7 +40,8 @@ public class DocumentationGenerationService {
     }
 
     /**
-     * Generuje dokumentację dla repozytorium używając AI modelu z wykorzystaniem cache.
+     * Generuje dokumentację dla repozytorium używając AI modelu z wykorzystaniem
+     * cache.
      * <p>
      * Flow:
      * 1. Zapewnia dostępność cache z repository context (sprawdza/tworzy)
@@ -49,13 +49,16 @@ public class DocumentationGenerationService {
      * 3. Generuje README używając tego samego cache
      * 4. Zwraca wynik z oboma dokumentami
      * <p>
-     * Cache zawiera repository context XML (directory tree, hotspots, commits, source code)
-     * i jest identyfikowany przez URL repozytorium. Automatycznie wygasa po skonfigurowanym TTL.
+     * Cache zawiera repository context XML (directory tree, hotspots, commits,
+     * source code)
+     * i jest identyfikowany przez URL repozytorium. Automatycznie wygasa po
+     * skonfigurowanym TTL.
      * Reużycie cache dla wielu dokumentów oszczędza koszty i czas.
      *
      * @param report   raport z analizy Git repozytorium
      * @param repoRoot ścieżka do katalogu głównego repozytorium
-     * @return wynik generacji dokumentacji zawierający README, Architecture i Context File
+     * @return wynik generacji dokumentacji zawierający README, Architecture i
+     *         Context File
      */
     public DocumentationResult generateDocumentation(GitReport report, Path repoRoot) {
         logger.info("Rozpoczęcie generacji dokumentacji dla repo: {}", report.repo.url);
@@ -75,7 +78,7 @@ public class DocumentationGenerationService {
         aiContextFile = documentationPostProcessingService.enhance(aiContextFile, report);
 
         saveDebugFile(repoRoot, "generated_context_file_debug.md", aiContextFile);
-        
+
         // 3. Wygeneruj README
         String readme = generateSingleDocument(
                 repositoryContentCacheName,
@@ -83,7 +86,7 @@ public class DocumentationGenerationService {
                 PromptConstructionService.README_DOCUMENTATION_TEMPLATE_PATH,
                 report,
                 repoRoot);
-        saveDebugFile(repoRoot,"enerated_readme_file_debug.md", readme);
+        saveDebugFile(repoRoot, "generated_readme_file_debug.md", readme);
 
         // 4. Złóż wynik
         DocumentationResult result = new DocumentationResult();
@@ -105,7 +108,8 @@ public class DocumentationGenerationService {
      *
      * @param report   raport Git
      * @param repoRoot ścieżka do repozytorium
-     * @return nazwa cache (pełna nazwa w formacie cachedContent/xxx) lub null jeśli cache niedostępny
+     * @return nazwa cache (pełna nazwa w formacie cachedContent/xxx) lub null jeśli
+     *         cache niedostępny
      */
     private String ensureRepositoryContentCache(GitReport report, Path repoRoot) {
         String repoUrl = report.repo.url;
@@ -140,13 +144,15 @@ public class DocumentationGenerationService {
     }
 
     /**
-     * Generuje pojedynczy dokument używając cache (jeśli dostępny) lub pełnego promptu.
+     * Generuje pojedynczy dokument używając cache (jeśli dostępny) lub pełnego
+     * promptu.
      *
      * @param cacheName          nazwa cache lub null jeśli cache niedostępny
      * @param promptTemplatePath ścieżka do template promptu
      * @param docTemplatePath    ścieżka do template dokumentu
      * @param report             raport Git (używany tylko gdy cacheName == null)
-     * @param repoRoot           ścieżka do repo (używany tylko gdy cacheName == null)
+     * @param repoRoot           ścieżka do repo (używany tylko gdy cacheName ==
+     *                           null)
      * @return wygenerowany dokument Markdown (po parsowaniu)
      */
     private String generateSingleDocument(
@@ -184,6 +190,10 @@ public class DocumentationGenerationService {
             chatOptions = null; // Użyj domyślnych opcji
         }
 
+        // Zapisz prompt do pliku debugowania
+        String debugFilename = createDebugPromptFilename(promptTemplatePath);
+        saveDebugFile(repoRoot, debugFilename, promptText);
+
         // Wywołaj API
         String responseText = chatModelClient.call(promptText, chatOptions);
 
@@ -192,8 +202,10 @@ public class DocumentationGenerationService {
     }
 
     /**
-     * Wyciąga czystą treść z bloku kodu markdown, jeśli odpowiedź została w niego opakowana.
-     * Obsługuje bloki typu ```markdown, ``` lub po prostu zwraca tekst, jeśli nie ma bloków.
+     * Wyciąga czystą treść z bloku kodu markdown, jeśli odpowiedź została w niego
+     * opakowana.
+     * Obsługuje bloki typu ```markdown, ``` lub po prostu zwraca tekst, jeśli nie
+     * ma bloków.
      *
      * @param responseText tekst odpowiedzi z API
      * @return wyczyszczona treść markdown
@@ -206,7 +218,7 @@ public class DocumentationGenerationService {
         String trimmed = responseText.trim();
 
         // Sprawdź czy zaczyna się od ```markdown, ```json lub po prostu ```
-        String[] prefixes = {"```markdown", "```json", "```"};
+        String[] prefixes = { "```markdown", "```json", "```" };
         for (String prefix : prefixes) {
             if (trimmed.startsWith(prefix)) {
                 int start = trimmed.indexOf(prefix) + prefix.length();
@@ -224,8 +236,10 @@ public class DocumentationGenerationService {
     }
 
     /**
-     * Zapisuje zawartość do pliku w katalogu working_directory w celach debugowania.
-     * Metoda nie przerywa głównego flow w przypadku błędów - tylko loguje ostrzeżenia.
+     * Zapisuje zawartość do pliku w katalogu working_directory w celach
+     * debugowania.
+     * Metoda nie przerywa głównego flow w przypadku błędów - tylko loguje
+     * ostrzeżenia.
      *
      * @param repoRoot
      * @param filename nazwa pliku do zapisania
@@ -240,5 +254,19 @@ public class DocumentationGenerationService {
             logger.warn("Nie udało się zapisać pliku debugowania {}: {}", filename, e.getMessage());
         }
     }
-}
 
+    private String createDebugPromptFilename(String templatePath) {
+        String filename = templatePath;
+        int lastSlash = templatePath.lastIndexOf('/');
+        if (lastSlash >= 0) {
+            filename = templatePath.substring(lastSlash + 1);
+        }
+
+        int dotIndex = filename.lastIndexOf('.');
+        if (dotIndex > 0) {
+            filename = filename.substring(0, dotIndex);
+        }
+
+        return filename + "_prompt_debug.txt";
+    }
+}
