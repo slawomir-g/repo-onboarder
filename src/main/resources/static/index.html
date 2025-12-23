@@ -168,13 +168,15 @@
       <div id="errorMsg" class="error"></div>
 
         <div id="results" class="result-section">
-        <div class="tabs">
-          <div class="tab active" onclick="switchTab('readme')">README.md</div>
-          <div class="tab" onclick="switchTab('refactorings')">
-            Refactorings
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <div class="tabs" style="margin-bottom: 0; border-bottom: none;">
+            <div class="tab active" onclick="switchTab('readme')">README.md</div>
+            <div class="tab" onclick="switchTab('refactorings')">Refactorings</div>
+            <div class="tab" onclick="switchTab('context')">AI Context</div>
           </div>
-          <div class="tab" onclick="switchTab('context')">AI Context</div>
+          <button id="copyBtn" onclick="copyActiveTabContent()" style="padding: 5px 15px; font-size: 14px;">Copy Markdown</button>
         </div>
+        <div style="border-bottom: 1px solid #ddd; margin-bottom: 20px;"></div>
 
         <div id="readme-content" class="tab-content active markdown-body"></div>
         <div id="context-content" class="tab-content markdown-body"></div>
@@ -183,6 +185,9 @@
     </div>
 
     <script>
+      let currentAnalysisData = null;
+      let activeTabId = 'readme';
+
       async function runAnalysis() {
         const repoUrl = document.getElementById("repoUrl").value.trim();
         const branch = document.getElementById("branch").value.trim();
@@ -204,6 +209,7 @@
         spinner.style.display = "block";
         resultsDiv.style.display = "none";
         errorDiv.style.display = "none";
+        currentAnalysisData = null;
 
         try {
           const formData = new FormData();
@@ -245,6 +251,7 @@
       }
 
       function renderResults(data) {
+        currentAnalysisData = data;
         document.getElementById("results").style.display = "block";
 
         document.getElementById("readme-content").innerHTML = marked.parse(
@@ -255,6 +262,9 @@
         document.getElementById("context-content").innerHTML = marked.parse(
           data.aiContextFile || "*No Context file generated*"
         );
+        
+        // Reset tab state if needed, or keep current
+        switchTab(activeTabId);
       }
 
       function showError(msg) {
@@ -264,11 +274,18 @@
       }
 
       function switchTab(tabName) {
+        activeTabId = tabName;
         // Update tab classes
         document
           .querySelectorAll(".tab")
           .forEach((t) => t.classList.remove("active"));
-        event.currentTarget.classList.add("active");
+        
+        // Find the tab element that was clicked is hard because we pass name. 
+        // Let's select by onclick attribute content as a quick hack or just iterate.
+        const tabs = document.querySelectorAll(".tab");
+        if (tabName === 'readme') tabs[0].classList.add("active");
+        if (tabName === 'refactorings') tabs[1].classList.add("active");
+        if (tabName === 'context') tabs[2].classList.add("active");
 
         // Update content visibility
         document
@@ -284,6 +301,33 @@
         } else {
           document.getElementById("context-content").classList.add("active");
         }
+      }
+
+      function copyActiveTabContent() {
+        if (!currentAnalysisData) return;
+
+        let content = "";
+        if (activeTabId === "readme") {
+            content = currentAnalysisData.readme;
+        } else if (activeTabId === "refactorings") {
+            content = currentAnalysisData.refactorings;
+        } else if (activeTabId === "context") {
+            content = currentAnalysisData.aiContextFile;
+        }
+
+        if (!content) content = "";
+
+        navigator.clipboard.writeText(content).then(() => {
+            const btn = document.getElementById("copyBtn");
+            const originalText = btn.textContent;
+            btn.textContent = "Copied!";
+            setTimeout(() => {
+                btn.textContent = originalText;
+            }, 2000);
+        }).catch(err => {
+            console.error('Failed to copy: ', err);
+            alert("Failed to copy to clipboard");
+        });
       }
     </script>
   </body>
