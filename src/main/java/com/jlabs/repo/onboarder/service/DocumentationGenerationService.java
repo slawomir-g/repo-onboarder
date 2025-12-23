@@ -60,11 +60,12 @@ public class DocumentationGenerationService {
      * @return wynik generacji dokumentacji zawierający README, Architecture i
      *         Context File
      */
-    public DocumentationResult generateDocumentation(GitReport report, Path repoRoot) {
+    public DocumentationResult generateDocumentation(GitReport report, Path repoRoot, Path debugOutputDir) {
         logger.info("Rozpoczęcie generacji dokumentacji dla repo: {}", report.repo.url);
 
         // 1. Zapewnij dostępność cache (jeden raz dla obu dokumentów)
-        String repositoryContentCacheName = ensureRepositoryContentCache(report, repoRoot);
+        // Pass debugOutputDir to ensureRepositoryContentCache
+        String repositoryContentCacheName = ensureRepositoryContentCache(report, repoRoot, debugOutputDir);
 
         // 2. Wygeneruj AI Context File
         String aiContextFile = generateSingleDocument(
@@ -72,12 +73,13 @@ public class DocumentationGenerationService {
                 PromptConstructionService.AI_CONTEXT_PROMPT_TEMPLATE_PATH,
                 PromptConstructionService.AI_CONTEXT_DOCUMENTATION_TEMPLATE_PATH,
                 report,
-                repoRoot);
+                repoRoot,
+                debugOutputDir); // Pass debugOutputDir
 
         // 2.1 Post-processing - dodaj sekcję Project Structure
         aiContextFile = documentationPostProcessingService.enhance(aiContextFile, report);
 
-        saveDebugFile(repoRoot, "generated_context_file_debug.md", aiContextFile);
+        saveDebugFile(debugOutputDir, "generated_context_file_debug.md", aiContextFile);
 
         // 3. Wygeneruj README
         String readme = generateSingleDocument(
@@ -85,8 +87,9 @@ public class DocumentationGenerationService {
                 PromptConstructionService.README_PROMPT_TEMPLATE_PATH,
                 PromptConstructionService.README_DOCUMENTATION_TEMPLATE_PATH,
                 report,
-                repoRoot);
-        saveDebugFile(repoRoot, "generated_readme_file_debug.md", readme);
+                repoRoot,
+                debugOutputDir); // Pass debugOutputDir
+        saveDebugFile(debugOutputDir, "generated_readme_file_debug.md", readme);
 
         // 4. Złóż wynik
         DocumentationResult result = new DocumentationResult();
@@ -111,7 +114,7 @@ public class DocumentationGenerationService {
      * @return nazwa cache (pełna nazwa w formacie cachedContent/xxx) lub null jeśli
      *         cache niedostępny
      */
-    private String ensureRepositoryContentCache(GitReport report, Path repoRoot) {
+    private String ensureRepositoryContentCache(GitReport report, Path repoRoot, Path debugOutputDir) {
         String repoUrl = report.repo.url;
         String model = aiProperties.getChat().getOptions().getModel();
 
@@ -129,7 +132,7 @@ public class DocumentationGenerationService {
 
         // Przygotuj repository context XML
         String repoContextXml = promptConstructionService.prepareRepositoryContext(report, repoRoot);
-        saveDebugFile(repoRoot, "ai_context_prompt_debug.txt", repoContextXml);
+        saveDebugFile(debugOutputDir, "ai_context_prompt_debug.txt", repoContextXml);
 
         // Spróbuj utworzyć cached content
         String newCacheName = repositoryCacheService.createCachedContent(repoUrl, repoContextXml, model);
@@ -160,7 +163,8 @@ public class DocumentationGenerationService {
             String promptTemplatePath,
             String docTemplatePath,
             GitReport report,
-            Path repoRoot) {
+            Path repoRoot,
+            Path debugOutputDir) {
 
         String promptText;
         GoogleGenAiChatOptions chatOptions;
@@ -192,7 +196,7 @@ public class DocumentationGenerationService {
 
         // Zapisz prompt do pliku debugowania
         String debugFilename = createDebugPromptFilename(promptTemplatePath);
-        saveDebugFile(repoRoot, debugFilename, promptText);
+        saveDebugFile(debugOutputDir, debugFilename, promptText);
 
         // Wywołaj API
         String responseText = chatModelClient.call(promptText, chatOptions);
@@ -241,13 +245,13 @@ public class DocumentationGenerationService {
      * Metoda nie przerywa głównego flow w przypadku błędów - tylko loguje
      * ostrzeżenia.
      *
-     * @param repoRoot
-     * @param filename nazwa pliku do zapisania
-     * @param content  zawartość do zapisania
+     * @param outputDir katalog docelowy
+     * @param filename  nazwa pliku do zapisania
+     * @param content   zawartość do zapisania
      */
-    private void saveDebugFile(Path repoRoot, String filename, String content) {
+    private void saveDebugFile(Path outputDir, String filename, String content) {
         try {
-            Path debugFile = repoRoot.resolve(filename);
+            Path debugFile = outputDir.resolve(filename);
             Files.writeString(debugFile, content, StandardCharsets.UTF_8);
             logger.debug("Zapisano plik debugowania: {}", debugFile);
         } catch (Exception e) {

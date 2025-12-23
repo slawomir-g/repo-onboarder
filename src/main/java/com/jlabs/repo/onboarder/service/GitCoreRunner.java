@@ -6,14 +6,12 @@ import com.jlabs.repo.onboarder.markdown.*;
 import com.jlabs.repo.onboarder.model.DocumentationResult;
 import com.jlabs.repo.onboarder.model.GitReport;
 import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -88,14 +86,20 @@ public class GitCoreRunner {
     public DocumentationResult run(String repoUrl, String branch, boolean withTest) throws Exception {
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
         String temporaryDirName = timestamp + "_" + UUID.randomUUID();
-        String workDir = properties.getWorkdir().concat(File.separator).concat(temporaryDirName);
 
-        Path appWorkingDir = Path.of(workDir, "working_directory");
+        // workDir = .../workdir/{timestamp_uuid}
+        Path workDir = Path.of(properties.getWorkdir(), temporaryDirName);
+        Files.createDirectories(workDir);
+
+        // repoDir = .../workdir/{timestamp_uuid}/repo
+        Path repoDir = workDir.resolve("repo");
+        Files.createDirectories(repoDir);
+
         CredentialsProvider credentials = repositoryManager.credentials(properties);
 
         try (GitAnalysisContext ctx = analysisContext) {
 
-            Git git = ctx.open(properties, workDir, repoUrl);
+            Git git = ctx.open(properties, repoDir.toString(), repoUrl);
 
             checkoutService.fetchCheckoutPull(git, properties, credentials, branch);
 
@@ -105,11 +109,12 @@ public class GitCoreRunner {
 
             Path repoRoot = ctx.repositoryRoot();
 
-            GitReport report = createGitReport(repoUrl, branch, withTest, git, workDir);
+            GitReport report = createGitReport(repoUrl, branch, withTest, git, workDir.toString());
 
-            DocumentationResult result = documentationGenerationService.generateDocumentation(report, repoRoot);
+            DocumentationResult result = documentationGenerationService.generateDocumentation(report, repoRoot,
+                    workDir);
 
-            saveDocumentationResult(result, appWorkingDir);
+            saveDocumentationResult(result, workDir);
 
             logger.info("Dokumentacja wygenerowana pomyślnie");
             logger.debug("README długość: {} znaków",
