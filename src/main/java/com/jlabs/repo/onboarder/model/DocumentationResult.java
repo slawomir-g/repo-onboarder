@@ -31,6 +31,12 @@ public class DocumentationResult {
      */
     private String aiContextFile;
 
+    /**
+     * Dokumentacja DDD Refactoring w formacie Markdown.
+     * Zawiera sugestie dotyczące domeny i wzorców DDD.
+     */
+    private String dddRefactorings;
+
     public DocumentationResult() {
     }
 
@@ -56,5 +62,13 @@ public class DocumentationResult {
 
     public void setAiContextFile(String contextFile) {
         this.aiContextFile = contextFile;
+    }
+
+    public String getDddRefactorings() {
+        return dddRefactorings;
+    }
+
+    public void setDddRefactorings(String dddRefactorings) {
+        this.dddRefactorings = dddRefactorings;
     }
 }

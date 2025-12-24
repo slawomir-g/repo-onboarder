@@ -101,11 +101,22 @@ public class DocumentationGenerationService {
                 debugOutputDir); // Pass debugOutputDir
         saveDebugFile(debugOutputDir, "generated_refactoring_file_debug.md", refactorings);
 
-        // 4. Złóż wynik
+        // 5. Wygeneruj DDD Refactoring
+        String dddRefactorings = generateSingleDocument(
+                repositoryContentCacheName,
+                PromptConstructionService.DDD_REFACTORING_PROMPT_TEMPLATE_PATH,
+                PromptConstructionService.DDD_REFACTORING_DOCUMENTATION_TEMPLATE_PATH,
+                report,
+                repoRoot,
+                debugOutputDir); // Pass debugOutputDir
+        saveDebugFile(debugOutputDir, "generated_ddd_refactoring_file_debug.md", dddRefactorings);
+
+        // 6. Złóż wynik
         DocumentationResult result = new DocumentationResult();
         result.setAiContextFile(aiContextFile);
         result.setReadme(readme);
         result.setRefactorings(refactorings);
+        result.setDddRefactorings(dddRefactorings);
 
         logger.info("Dokumentacja wygenerowana pomyślnie");
         logger.debug("AI Context File długość: {} znaków",

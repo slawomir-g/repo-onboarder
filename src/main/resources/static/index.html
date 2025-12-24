@@ -172,6 +172,7 @@
           <div class="tabs" style="margin-bottom: 0; border-bottom: none;">
             <div class="tab active" onclick="switchTab('readme')">README.md</div>
             <div class="tab" onclick="switchTab('refactorings')">Refactorings</div>
+            <div class="tab" onclick="switchTab('ddd')">DDD Refactoring</div>
             <div class="tab" onclick="switchTab('context')">AI Context</div>
           </div>
           <button id="copyBtn" onclick="copyActiveTabContent()" style="padding: 5px 15px; font-size: 14px;">Copy Markdown</button>
@@ -181,6 +182,7 @@
         <div id="readme-content" class="tab-content active markdown-body"></div>
         <div id="context-content" class="tab-content markdown-body"></div>
         <div id="refactorings-content" class="tab-content markdown-body"></div>
+        <div id="ddd-content" class="tab-content markdown-body"></div>
       </div>
     </div>
 
@@ -262,6 +264,9 @@
         document.getElementById("context-content").innerHTML = marked.parse(
           data.aiContextFile || "*No Context file generated*"
         );
+        document.getElementById("ddd-content").innerHTML = marked.parse(
+          data.dddRefactorings || "*No DDD Refactorings generated*"
+        );
         
         // Reset tab state if needed, or keep current
         switchTab(activeTabId);
@@ -285,7 +290,8 @@
         const tabs = document.querySelectorAll(".tab");
         if (tabName === 'readme') tabs[0].classList.add("active");
         if (tabName === 'refactorings') tabs[1].classList.add("active");
-        if (tabName === 'context') tabs[2].classList.add("active");
+        if (tabName === 'ddd') tabs[2].classList.add("active");
+        if (tabName === 'context') tabs[3].classList.add("active");
 
         // Update content visibility
         document
@@ -298,6 +304,8 @@
           document
             .getElementById("refactorings-content")
             .classList.add("active");
+        } else if (tabName === "ddd") {
+            document.getElementById("ddd-content").classList.add("active");
         } else {
           document.getElementById("context-content").classList.add("active");
         }
@@ -313,6 +321,8 @@
             content = currentAnalysisData.refactorings;
         } else if (activeTabId === "context") {
             content = currentAnalysisData.aiContextFile;
+        } else if (activeTabId === "ddd") {
+            content = currentAnalysisData.dddRefactorings;
         }
 
         if (!content) content = "";
