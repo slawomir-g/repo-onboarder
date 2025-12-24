@@ -85,6 +85,7 @@ It's OK for this section to be quite long - thoroughness is more important than 
 
 ## Output Requirements
 
+IMPORTANT: DO NOT include the analysis work from the thinking block in the final output.
 After completing your analysis, create a refactoring plan in **pure markdown format**. Your markdown output should follow this structure:
 
 ```markdown
