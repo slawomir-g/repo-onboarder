@@ -232,6 +232,15 @@ public class DocumentationGenerationService {
 
         String trimmed = responseText.trim();
 
+        // 0. Usuń blok <analysis>...</analysis> jeśli występuje na początku
+        if (trimmed.startsWith("<analysis>")) {
+            int endTagIndex = trimmed.indexOf("</analysis>");
+            if (endTagIndex != -1) {
+                logger.debug("Usuwanie bloku <analysis> z odpowiedzi (długość: {})", endTagIndex + 11);
+                trimmed = trimmed.substring(endTagIndex + "</analysis>".length()).trim();
+            }
+        }
+
         // Sprawdź czy zaczyna się od ```markdown, ```json lub po prostu ```
         String[] prefixes = { "```markdown", "```json", "```" };
         for (String prefix : prefixes) {

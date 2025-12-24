@@ -18,6 +18,7 @@ You must follow these rules strictly:
 - Output must be valid Markdown and represent the full contents of `README.md`
 - Your final output should consist ONLY of the Markdown documentation
 - DO NOT wrap the output in JSON
+- IMPORTANT: DO NOT include the analysis work from the thinking block in the final output.
 - Start directly with the Markdown content (e.g., the project title)
 
 ## Documentation template

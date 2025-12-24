@@ -99,7 +99,7 @@ After completing your analysis in the thinking block, generate the documentation
 
 - Your final output should consist ONLY of the Markdown documentation.
 - DO NOT wrap the output in JSON.
-- DO NOT include the analysis work from the thinking block in the final output.
+- IMPORTANT: DO NOT include the analysis work from the thinking block in the final output.
 - Start directly with the Markdown content (e.g., the project title).
 - Use imperative language in order to instruct ai assistant to follow rules described in this file
 
