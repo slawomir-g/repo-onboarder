@@ -32,11 +32,6 @@ public class GitCoreRunner {
     private final GitFileCollector fileCollector;
     private final GitCommitCollector commitCollector;
     private final GitHotspotsCollector hotspotsCollector;
-    private final MarkdownReportWriter markdownWriter;
-    private final CommitHistoryPayloadWriter commitHistoryPayloadWriter;
-    private final DirectoryTreePayloadWriter directoryTreePayloadWriter;
-    private final HotspotsPayloadWriter hotspotsPayloadWriter;
-    private final SourceCodeCorpusPayloadWriter sourceCodeCorpusPayloadWriter;
     private final DocumentationGenerationService documentationGenerationService;
     private final TestDirectoryCleaner testDirectoryCleaner;
 
@@ -49,11 +44,6 @@ public class GitCoreRunner {
             GitFileCollector fileCollector,
             GitCommitCollector commitCollector,
             GitHotspotsCollector hotspotsCollector,
-            MarkdownReportWriter markdownWriter,
-            CommitHistoryPayloadWriter commitHistoryPayloadWriter,
-            DirectoryTreePayloadWriter directoryTreePayloadWriter,
-            HotspotsPayloadWriter hotspotsPayloadWriter,
-            SourceCodeCorpusPayloadWriter sourceCodeCorpusPayloadWriter,
             DocumentationGenerationService documentationGenerationService,
             TestDirectoryCleaner testDirectoryCleaner) {
         this.properties = properties;
@@ -64,11 +54,6 @@ public class GitCoreRunner {
         this.fileCollector = fileCollector;
         this.commitCollector = commitCollector;
         this.hotspotsCollector = hotspotsCollector;
-        this.markdownWriter = markdownWriter;
-        this.commitHistoryPayloadWriter = commitHistoryPayloadWriter;
-        this.directoryTreePayloadWriter = directoryTreePayloadWriter;
-        this.hotspotsPayloadWriter = hotspotsPayloadWriter;
-        this.sourceCodeCorpusPayloadWriter = sourceCodeCorpusPayloadWriter;
         this.documentationGenerationService = documentationGenerationService;
         this.testDirectoryCleaner = testDirectoryCleaner;
     }
