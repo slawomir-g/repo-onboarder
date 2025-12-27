@@ -3,6 +3,7 @@ package com.jlabs.repo.onboarder.service;
 import com.jlabs.repo.onboarder.markdown.*;
 import com.jlabs.repo.onboarder.model.GitReport;
 import com.jlabs.repo.onboarder.service.exceptions.PromptConstructionException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.prompt.PromptTemplate;
 import org.springframework.ai.template.st.StTemplateRenderer;
 import org.springframework.core.io.ClassPathResource;
@@ -23,6 +24,7 @@ import java.util.Map;
  * z klas PayloadWriter zamiast czytać z plików.
  */
 @Service
+@RequiredArgsConstructor
 public class PromptConstructionService {
 
         private static final char PLACEHOLDER_TOKEN = '$';
@@ -46,17 +48,6 @@ public class PromptConstructionService {
         private final HotspotsPayloadWriter hotspotsPayloadWriter;
         private final CommitHistoryPayloadWriter commitHistoryPayloadWriter;
         private final SourceCodeCorpusPayloadWriter sourceCodeCorpusPayloadWriter;
-
-        public PromptConstructionService(
-                        DirectoryTreePayloadWriter directoryTreePayloadWriter,
-                        HotspotsPayloadWriter hotspotsPayloadWriter,
-                        CommitHistoryPayloadWriter commitHistoryPayloadWriter,
-                        SourceCodeCorpusPayloadWriter sourceCodeCorpusPayloadWriter) {
-                this.directoryTreePayloadWriter = directoryTreePayloadWriter;
-                this.hotspotsPayloadWriter = hotspotsPayloadWriter;
-                this.commitHistoryPayloadWriter = commitHistoryPayloadWriter;
-                this.sourceCodeCorpusPayloadWriter = sourceCodeCorpusPayloadWriter;
-        }
 
         /**
          * Konstruuje finalny prompt dla AI modelu, pozwalając wskazać template promptu
@@ -114,7 +105,7 @@ public class PromptConstructionService {
                 String hotspotsPayload = hotspotsPayloadWriter.generate(report);
                 String commitHistoryPayload = commitHistoryPayloadWriter.generate(report);
                 String sourceCodeCorpusPayload = sourceCodeCorpusPayloadWriter.generate(report, repoRoot);
-                String projectName = extractProjectName(report.repo.url);
+                String projectName = extractProjectName(report.getRepo().getUrl());
 
                 PromptTemplate repositoryContextTemplate = PromptTemplate.builder()
                                 .renderer(StTemplateRenderer.builder()
@@ -127,9 +118,9 @@ public class PromptConstructionService {
                 String repositoryContextXml = repositoryContextTemplate.render(Map.of(
                                 "PROJECT_NAME_PAYLOAD_PLACEHOLDER", projectName,
                                 "ANALYSIS_TIMESTAMP_PAYLOAD_PLACEHOLDER",
-                                TIMESTAMP_FORMATTER.format(report.generatedAt),
+                                TIMESTAMP_FORMATTER.format(report.getGeneratedAt()),
                                 "BRANCH_PAYLOAD_PLACEHOLDER",
-                                report.repo.branch != null ? report.repo.branch : "main",
+                                report.getRepo().getBranch() != null ? report.getRepo().getBranch() : "main",
                                 "DIRECTORY_TREE_PAYLOAD_PLACEHOLDER", directoryTreePayload,
                                 "HOTSPOTS_PAYLOAD_PLACEHOLDER", hotspotsPayload,
                                 "COMMIT_HISTORY_PAYLOAD_PLACEHOLDER", commitHistoryPayload,

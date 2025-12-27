@@ -3,8 +3,7 @@ package com.jlabs.repo.onboarder.service;
 import com.jlabs.repo.onboarder.infrastructure.springai.ChatModelClient;
 import com.jlabs.repo.onboarder.model.DocumentationResult;
 import com.jlabs.repo.onboarder.model.GitReport;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.google.genai.GoogleGenAiChatOptions;
 
 import java.nio.charset.StandardCharsets;
@@ -15,9 +14,8 @@ import java.nio.file.Path;
  * Abstract base class for generating specific types of documentation.
  * Defines the template method for the generation process.
  */
+@Slf4j
 public abstract class DocumentGenerationService {
-
-    private static final Logger logger = LoggerFactory.getLogger(DocumentGenerationService.class);
 
     protected final ChatModelClient chatModelClient;
     protected final PromptConstructionService promptConstructionService;
@@ -73,10 +71,10 @@ public abstract class DocumentGenerationService {
     private String constructPrompt(String cacheName, String promptTemplatePath, String docTemplatePath,
             GitReport report, Path repoRoot) {
         if (cacheName != null) {
-            logger.debug("Generowanie dokumentu z użyciem cache: {}", cacheName);
+            log.debug("Generowanie dokumentu z użyciem cache: {}", cacheName);
             return promptConstructionService.constructPromptWithCache(cacheName, promptTemplatePath, docTemplatePath);
         } else {
-            logger.debug("Generowanie dokumentu bez cache (pełny prompt)");
+            log.debug("Generowanie dokumentu bez cache (pełny prompt)");
             return promptConstructionService.constructPrompt(report, repoRoot, promptTemplatePath, docTemplatePath);
         }
     }
@@ -110,9 +108,9 @@ public abstract class DocumentGenerationService {
         try {
             Path debugFile = outputDir.resolve(filename);
             Files.writeString(debugFile, content, StandardCharsets.UTF_8);
-            logger.debug("Zapisano plik debugowania: {}", debugFile);
+            log.debug("Zapisano plik debugowania: {}", debugFile);
         } catch (Exception e) {
-            logger.warn("Nie udało się zapisać pliku debugowania {}: {}", filename, e.getMessage());
+            log.warn("Nie udało się zapisać pliku debugowania {}: {}", filename, e.getMessage());
         }
     }
 
@@ -127,7 +125,7 @@ public abstract class DocumentGenerationService {
         if (trimmed.startsWith("<analysis>")) {
             int endTagIndex = trimmed.indexOf("</analysis>");
             if (endTagIndex != -1) {
-                logger.debug("Usuwanie bloku <analysis> z odpowiedzi (długość: {})", endTagIndex + 11);
+                log.debug("Usuwanie bloku <analysis> z odpowiedzi (długość: {})", endTagIndex + 11);
                 trimmed = trimmed.substring(endTagIndex + "</analysis>".length()).trim();
             }
         }
@@ -141,7 +139,7 @@ public abstract class DocumentGenerationService {
 
                 if (end > start) {
                     String content = trimmed.substring(start, end).trim();
-                    logger.debug("Wyciągnięto treść z bloku kodu {}, długość: {} znaków", prefix, content.length());
+                    log.debug("Wyciągnięto treść z bloku kodu {}, długość: {} znaków", prefix, content.length());
                     return content;
                 }
             }

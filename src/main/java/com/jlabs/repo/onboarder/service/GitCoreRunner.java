@@ -8,8 +8,8 @@ import com.jlabs.repo.onboarder.model.GitReport;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.jspecify.annotations.NonNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -21,6 +21,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
 @Service
+@Slf4j
+@RequiredArgsConstructor
 public class GitCoreRunner {
 
     private final GitCoreProperties properties;
@@ -34,31 +36,6 @@ public class GitCoreRunner {
     private final GitHotspotsCollector hotspotsCollector;
     private final DocumentationGenerationService documentationGenerationService;
     private final TestDirectoryCleaner testDirectoryCleaner;
-
-    public GitCoreRunner(
-            GitCoreProperties properties,
-            GitAnalysisContext analysisContext,
-            GitRepositoryManager repositoryManager,
-            GitCheckoutService checkoutService,
-            GitMetaCollector metaCollector,
-            GitFileCollector fileCollector,
-            GitCommitCollector commitCollector,
-            GitHotspotsCollector hotspotsCollector,
-            DocumentationGenerationService documentationGenerationService,
-            TestDirectoryCleaner testDirectoryCleaner) {
-        this.properties = properties;
-        this.analysisContext = analysisContext;
-        this.repositoryManager = repositoryManager;
-        this.checkoutService = checkoutService;
-        this.metaCollector = metaCollector;
-        this.fileCollector = fileCollector;
-        this.commitCollector = commitCollector;
-        this.hotspotsCollector = hotspotsCollector;
-        this.documentationGenerationService = documentationGenerationService;
-        this.testDirectoryCleaner = testDirectoryCleaner;
-    }
-
-    private static final Logger logger = LoggerFactory.getLogger(GitCoreRunner.class);
 
     /**
      * Wykonuje pełną analizę repozytorium Git i generuje dokumentację przy użyciu
@@ -101,12 +78,12 @@ public class GitCoreRunner {
 
             saveDocumentationResult(result, workDir);
 
-            logger.info("Dokumentacja wygenerowana pomyślnie");
-            logger.debug("README długość: {} znaków",
+            log.info("Dokumentacja wygenerowana pomyślnie");
+            log.debug("README długość: {} znaków",
                     result.getReadme() != null ? result.getReadme().length() : 0);
-            logger.debug("Refactorings długość: {} znaków",
+            log.debug("Refactorings długość: {} znaków",
                     result.getRefactorings() != null ? result.getRefactorings().length() : 0);
-            logger.debug("Context File długość: {} znaków",
+            log.debug("Context File długość: {} znaków",
                     result.getAiContextFile() != null ? result.getAiContextFile().length() : 0);
 
             return result;

@@ -26,7 +26,7 @@ public class GitCommitCollector {
         int maxChangedFiles = props.getLimits().getMaxChangedFiles();
 
         try (RevWalk walk = new RevWalk(repo);
-             DiffFormatter diffFormatter = new DiffFormatter(DisabledOutputStream.INSTANCE)) {
+                DiffFormatter diffFormatter = new DiffFormatter(DisabledOutputStream.INSTANCE)) {
 
             diffFormatter.setRepository(repo);
             diffFormatter.setDetectRenames(true);
@@ -36,42 +36,42 @@ public class GitCommitCollector {
 
             for (RevCommit commit : git.log().call()) {
                 counter++;
-                if (maxCommits > 0 && counter > maxCommits) break;
+                if (maxCommits > 0 && counter > maxCommits)
+                    break;
 
                 GitReport.CommitInfo ci = new GitReport.CommitInfo();
 
-                ci.commitId = commit.getName();
-                ci.shortId = commit.getName().substring(0, 8);
+                ci.setCommitId(commit.getName());
+                ci.setShortId(commit.getName().substring(0, 8));
 
-                ci.authorName = commit.getAuthorIdent().getName();
-                ci.authorEmail = commit.getAuthorIdent().getEmailAddress();
-                ci.authorTime = Instant.ofEpochSecond(commit.getAuthorIdent().getWhen().toInstant().getEpochSecond());
+                ci.setAuthorName(commit.getAuthorIdent().getName());
+                ci.setAuthorEmail(commit.getAuthorIdent().getEmailAddress());
+                ci.setAuthorTime(Instant.ofEpochSecond(commit.getAuthorIdent().getWhen().toInstant().getEpochSecond()));
 
-                ci.committerName = commit.getCommitterIdent().getName();
-                ci.committerEmail = commit.getCommitterIdent().getEmailAddress();
-                ci.committerTime = Instant.ofEpochSecond(commit.getCommitterIdent().getWhen().toInstant().getEpochSecond());
+                ci.setCommitterName(commit.getCommitterIdent().getName());
+                ci.setCommitterEmail(commit.getCommitterIdent().getEmailAddress());
+                ci.setCommitterTime(
+                        Instant.ofEpochSecond(commit.getCommitterIdent().getWhen().toInstant().getEpochSecond()));
 
-                ci.messageShort = commit.getShortMessage();
-                ci.messageFull = commit.getFullMessage();
+                ci.setMessageShort(commit.getShortMessage());
+                ci.setMessageFull(commit.getFullMessage());
 
                 for (RevCommit p : commit.getParents()) {
-                    ci.parents.add(p.getName());
+                    ci.getParents().add(p.getName());
                 }
 
                 if (commit.getParentCount() > 0) {
                     RevCommit parent = walk.parseCommit(commit.getParent(0).getId());
                     RevCommit current = walk.parseCommit(commit.getId());
 
-                    List<DiffEntry> diffs =
-                            diffFormatter.scan(parent.getTree(), current.getTree());
+                    List<DiffEntry> diffs = diffFormatter.scan(parent.getTree(), current.getTree());
 
                     int totalAdded = 0;
                     int totalDeleted = 0;
 
-                    int take =
-                            (maxChangedFiles > 0)
-                                    ? Math.min(maxChangedFiles, diffs.size())
-                                    : diffs.size();
+                    int take = (maxChangedFiles > 0)
+                            ? Math.min(maxChangedFiles, diffs.size())
+                            : diffs.size();
 
                     for (int i = 0; i < diffs.size(); i++) {
                         DiffEntry de = diffs.get(i);
@@ -92,30 +92,29 @@ public class GitCommitCollector {
                         totalDeleted += deleted;
 
                         if (i < take) {
-                            GitReport.CommitInfo.FileChange fc =
-                                    new GitReport.CommitInfo.FileChange();
-                            fc.type = de.getChangeType().name();
-                            fc.oldPath = de.getOldPath();
-                            fc.newPath = de.getNewPath();
-                            fc.linesAdded = added;
-                            fc.linesDeleted = deleted;
+                            GitReport.CommitInfo.FileChange fc = new GitReport.CommitInfo.FileChange();
+                            fc.setType(de.getChangeType().name());
+                            fc.setOldPath(de.getOldPath());
+                            fc.setNewPath(de.getNewPath());
+                            fc.setLinesAdded(added);
+                            fc.setLinesDeleted(deleted);
 
-                            ci.changes.add(fc);
+                            ci.getChanges().add(fc);
                         }
                     }
 
-                    ci.diffStats.filesChanged = diffs.size();
-                    ci.diffStats.linesAdded = totalAdded;
-                    ci.diffStats.linesDeleted = totalDeleted;
-                    ci.diffStats.linesTotal = totalAdded + totalDeleted;
+                    ci.getDiffStats().setFilesChanged(diffs.size());
+                    ci.getDiffStats().setLinesAdded(totalAdded);
+                    ci.getDiffStats().setLinesDeleted(totalDeleted);
+                    ci.getDiffStats().setLinesTotal(totalAdded + totalDeleted);
 
                     if (props.getLimits().isIncludePatch()) {
-                        ci.patchSnippet =
-                                patchSnippet(repo, parent, current, props.getLimits().getMaxPatchChars());
+                        ci.setPatchSnippet(
+                                patchSnippet(repo, parent, current, props.getLimits().getMaxPatchChars()));
                     }
                 }
 
-                report.commits.add(ci);
+                report.getCommits().add(ci);
             }
         }
     }
@@ -124,8 +123,7 @@ public class GitCommitCollector {
             Repository repo,
             RevCommit parent,
             RevCommit current,
-            int maxChars
-    ) throws Exception {
+            int maxChars) throws Exception {
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try (DiffFormatter fmt = new DiffFormatter(baos)) {
@@ -135,7 +133,8 @@ public class GitCommitCollector {
         }
 
         String patch = baos.toString(StandardCharsets.UTF_8);
-        if (maxChars <= 0) return patch;
+        if (maxChars <= 0)
+            return patch;
 
         return patch.length() <= maxChars
                 ? patch

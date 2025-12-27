@@ -1,83 +1,91 @@
 package com.jlabs.repo.onboarder.model;
 
+import lombok.Data;
+
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Data
 public class GitReport {
 
+    private Instant generatedAt = Instant.now();
 
-    public Instant generatedAt = Instant.now();
+    private RepoInfo repo = new RepoInfo();
+    private List<RemoteInfo> remotes = new ArrayList<>();
+    private List<String> branches = new ArrayList<>();
+    private List<String> tags = new ArrayList<>();
 
-    public RepoInfo repo = new RepoInfo();
-    public List<RemoteInfo> remotes = new ArrayList<>();
-    public List<String> branches = new ArrayList<>();
-    public List<String> tags = new ArrayList<>();
+    private List<String> allFilesAtHead = new ArrayList<>();
+    private List<CommitInfo> commits = new ArrayList<>();
 
-    public List<String> allFilesAtHead = new ArrayList<>();
-    public List<CommitInfo> commits = new ArrayList<>();
+    private Map<String, FileStats> fileStats = new HashMap<>();
 
-    public Map<String, FileStats> fileStats = new HashMap<>();
-
+    @Data
     public static class RepoInfo {
-        public String url;
-        public String branch;
-        public String workdir;
+        private String url;
+        private String branch;
+        private String workdir;
 
-        public String headCommit;
-        public String headShortMessage;
-        public Instant headCommitTime;
+        private String headCommit;
+        private String headShortMessage;
+        private Instant headCommitTime;
     }
 
+    @Data
     public static class RemoteInfo {
-        public String name;
-        public List<String> uris = new ArrayList<>();
+        private String name;
+        private List<String> uris = new ArrayList<>();
     }
 
+    @Data
     public static class CommitInfo {
 
-        public String commitId;
-        public String shortId;
+        private String commitId;
+        private String shortId;
 
-        public String authorName;
-        public String authorEmail;
-        public Instant authorTime;
+        private String authorName;
+        private String authorEmail;
+        private Instant authorTime;
 
-        public String committerName;
-        public String committerEmail;
-        public Instant committerTime;
+        private String committerName;
+        private String committerEmail;
+        private Instant committerTime;
 
-        public String messageShort;
-        public String messageFull;
+        private String messageShort;
+        private String messageFull;
 
-        public List<String> parents = new ArrayList<>();
+        private List<String> parents = new ArrayList<>();
 
-        public DiffStats diffStats = new DiffStats();
-        public List<FileChange> changes = new ArrayList<>();
+        private DiffStats diffStats = new DiffStats();
+        private List<FileChange> changes = new ArrayList<>();
 
-        public String patchSnippet;
+        private String patchSnippet;
 
+        @Data
         public static class DiffStats {
-            public int filesChanged;
-            public int linesAdded;
-            public int linesDeleted;
-            public int linesTotal;
+            private int filesChanged;
+            private int linesAdded;
+            private int linesDeleted;
+            private int linesTotal;
         }
 
+        @Data
         public static class FileChange {
-            public String type;
-            public String oldPath;
-            public String newPath;
-            public int linesAdded;
-            public int linesDeleted;
+            private String type;
+            private String oldPath;
+            private String newPath;
+            private int linesAdded;
+            private int linesDeleted;
         }
     }
 
+    @Data
     public static class FileStats {
-        public int commits;
-        public int linesAdded;
-        public int linesDeleted;
+        private int commits;
+        private int linesAdded;
+        private int linesDeleted;
     }
 }

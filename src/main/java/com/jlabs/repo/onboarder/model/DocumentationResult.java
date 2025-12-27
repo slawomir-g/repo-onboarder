@@ -1,6 +1,8 @@
 package com.jlabs.repo.onboarder.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * Model danych reprezentujący wynik generacji dokumentacji przez AI.
@@ -9,6 +11,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
  * - Architecture Documentation - szczegółowy opis architektury
  * - Context File - zoptymalizowany plik kontekstu dla AI agentów
  */
+@Data
+@NoArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class DocumentationResult {
 
@@ -36,39 +40,4 @@ public class DocumentationResult {
      * Zawiera sugestie dotyczące domeny i wzorców DDD.
      */
     private String dddRefactorings;
-
-    public DocumentationResult() {
-    }
-
-    public String getReadme() {
-        return readme;
-    }
-
-    public void setReadme(String readme) {
-        this.readme = readme;
-    }
-
-    public String getRefactorings() {
-        return refactorings;
-    }
-
-    public void setRefactorings(String refactorings) {
-        this.refactorings = refactorings;
-    }
-
-    public String getAiContextFile() {
-        return aiContextFile;
-    }
-
-    public void setAiContextFile(String contextFile) {
-        this.aiContextFile = contextFile;
-    }
-
-    public String getDddRefactorings() {
-        return dddRefactorings;
-    }
-
-    public void setDddRefactorings(String dddRefactorings) {
-        this.dddRefactorings = dddRefactorings;
-    }
 }

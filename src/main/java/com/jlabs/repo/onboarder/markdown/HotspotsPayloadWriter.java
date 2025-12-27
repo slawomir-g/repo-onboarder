@@ -26,12 +26,11 @@ public class HotspotsPayloadWriter {
     public String generate(GitReport report) {
         StringBuilder sb = new StringBuilder();
 
-        report.fileStats.entrySet().stream()
+        report.getFileStats().entrySet().stream()
                 .sorted(Map.Entry.<String, GitReport.FileStats>comparingByValue(
-                        Comparator.comparingInt(fs -> fs.linesAdded + fs.linesDeleted)
-                ).reversed())
+                        Comparator.comparingInt(fs -> fs.getLinesAdded() + fs.getLinesDeleted())).reversed())
                 .forEach(entry -> {
-                    int churn = entry.getValue().linesAdded + entry.getValue().linesDeleted;
+                    int churn = entry.getValue().getLinesAdded() + entry.getValue().getLinesDeleted();
                     sb.append("<file path=\"")
                             .append(entry.getKey())
                             .append("\" churn_score=\"")

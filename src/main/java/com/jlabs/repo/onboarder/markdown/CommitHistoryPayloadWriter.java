@@ -25,13 +25,13 @@ public class CommitHistoryPayloadWriter {
     public String generate(GitReport report) {
         StringBuilder sb = new StringBuilder();
 
-        report.commits.forEach(c -> {
+        report.getCommits().forEach(c -> {
             sb.append("<commit date='")
-                    .append(c.committerTime)
+                    .append(c.getCommitterTime())
                     .append("' committer='")
-                    .append(escape(c.committerName))
+                    .append(escape(c.getCommitterName()))
                     .append("'>")
-                    .append(escape(c.messageShort))
+                    .append(escape(c.getMessageShort()))
                     .append("</commit>")
                     .append(System.lineSeparator());
         });
@@ -40,10 +40,11 @@ public class CommitHistoryPayloadWriter {
     }
 
     private String escape(String s) {
-        return s == null ? "" : s
-                .replace("&", "&amp;")
-                .replace("<", "&lt;")
-                .replace(">", "&gt;")
-                .replace("'", "&apos;");
+        return s == null ? ""
+                : s
+                        .replace("&", "&amp;")
+                        .replace("<", "&lt;")
+                        .replace(">", "&gt;")
+                        .replace("'", "&apos;");
     }
 }

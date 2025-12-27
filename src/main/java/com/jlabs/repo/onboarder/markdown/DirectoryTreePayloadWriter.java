@@ -28,7 +28,7 @@ public class DirectoryTreePayloadWriter {
     public String generate(GitReport report) {
         DirNode root = new DirNode("", true);
 
-        for (String path : report.allFilesAtHead) {
+        for (String path : report.getAllFilesAtHead()) {
             addPath(root, path);
         }
 

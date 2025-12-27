@@ -12,76 +12,75 @@ import java.time.format.DateTimeFormatter;
 @Service
 public class MarkdownReportWriter {
 
-    private static final DateTimeFormatter TS =
-            DateTimeFormatter.ISO_INSTANT.withZone(ZoneOffset.UTC);
+    private static final DateTimeFormatter TS = DateTimeFormatter.ISO_INSTANT.withZone(ZoneOffset.UTC);
 
     public void write(GitReport report, Path output) throws Exception {
 
         try (BufferedWriter w = Files.newBufferedWriter(output)) {
 
             w.write("# Git Report\n\n");
-            w.write("- Generated at (UTC): **" + TS.format(report.generatedAt) + "**\n\n");
+            w.write("- Generated at (UTC): **" + TS.format(report.getGeneratedAt()) + "**\n\n");
 
             // === REPO ===
             w.write("## Repository\n\n");
-            w.write("- URL: **" + safe(report.repo.url) + "**\n");
-            w.write("- Branch: **" + safe(report.repo.branch) + "**\n");
-            w.write("- Workdir: `" + safe(report.repo.workdir) + "`\n\n");
+            w.write("- URL: **" + safe(report.getRepo().getUrl()) + "**\n");
+            w.write("- Branch: **" + safe(report.getRepo().getBranch()) + "**\n");
+            w.write("- Workdir: `" + safe(report.getRepo().getWorkdir()) + "`\n\n");
 
             // === HEAD ===
             w.write("## HEAD\n\n");
-            w.write("- Commit: `" + safe(report.repo.headCommit) + "`\n");
-            w.write("- Time: **" + format(report.repo.headCommitTime) + "**\n");
-            w.write("- Message: " + safe(report.repo.headShortMessage) + "\n\n");
+            w.write("- Commit: `" + safe(report.getRepo().getHeadCommit()) + "`\n");
+            w.write("- Time: **" + format(report.getRepo().getHeadCommitTime()) + "**\n");
+            w.write("- Message: " + safe(report.getRepo().getHeadShortMessage()) + "\n\n");
 
             // === FILES ===
             w.write("## Files at HEAD\n\n");
-            w.write("- Total: **" + report.allFilesAtHead.size() + "**\n\n");
+            w.write("- Total: **" + report.getAllFilesAtHead().size() + "**\n\n");
 
-            int maxFiles = Math.min(300, report.allFilesAtHead.size());
+            int maxFiles = Math.min(300, report.getAllFilesAtHead().size());
             for (int i = 0; i < maxFiles; i++) {
-                w.write("- `" + report.allFilesAtHead.get(i) + "`\n");
+                w.write("- `" + report.getAllFilesAtHead().get(i) + "`\n");
             }
-            if (report.allFilesAtHead.size() > maxFiles) {
+            if (report.getAllFilesAtHead().size() > maxFiles) {
                 w.write("\n_... truncated (" +
-                        (report.allFilesAtHead.size() - maxFiles) +
+                        (report.getAllFilesAtHead().size() - maxFiles) +
                         " more files)_\n");
             }
 
             // === COMMITS ===
             w.write("\n## Commits\n\n");
-            for (GitReport.CommitInfo c : report.commits) {
+            for (GitReport.CommitInfo c : report.getCommits()) {
 
-                w.write("### " + c.shortId + " — " + inline(c.messageShort) + "\n\n");
-                w.write("- Author: **" + inline(c.authorName) + "** <" + inline(c.authorEmail) + ">\n");
-                w.write("- Author time: **" + format(c.authorTime) + "**\n");
-                w.write("- Committer: **" + inline(c.committerName) + "** <" + inline(c.committerEmail) + ">\n");
-                w.write("- Committer time: **" + format(c.committerTime) + "**\n\n");
+                w.write("### " + c.getShortId() + " — " + inline(c.getMessageShort()) + "\n\n");
+                w.write("- Author: **" + inline(c.getAuthorName()) + "** <" + inline(c.getAuthorEmail()) + ">\n");
+                w.write("- Author time: **" + format(c.getAuthorTime()) + "**\n");
+                w.write("- Committer: **" + inline(c.getCommitterName()) + "** <" + inline(c.getCommitterEmail())
+                        + ">\n");
+                w.write("- Committer time: **" + format(c.getCommitterTime()) + "**\n\n");
 
-                w.write("**Diff stats**: files=" + c.diffStats.filesChanged +
-                        ", + " + c.diffStats.linesAdded +
-                        ", - " + c.diffStats.linesDeleted +
+                w.write("**Diff stats**: files=" + c.getDiffStats().getFilesChanged() +
+                        ", + " + c.getDiffStats().getLinesAdded() +
+                        ", - " + c.getDiffStats().getLinesDeleted() +
                         "\n\n");
 
-                if (!c.changes.isEmpty()) {
+                if (!c.getChanges().isEmpty()) {
                     w.write("| Type | Path | + | - |\n");
                     w.write("|---|---|---:|---:|\n");
-                    for (var ch : c.changes) {
-                        String path =
-                                (ch.newPath != null && !ch.newPath.isBlank())
-                                        ? ch.newPath
-                                        : ch.oldPath;
+                    for (var ch : c.getChanges()) {
+                        String path = (ch.getNewPath() != null && !ch.getNewPath().isBlank())
+                                ? ch.getNewPath()
+                                : ch.getOldPath();
 
-                        w.write("| " + ch.type + " | `" + escape(path) +
-                                "` | " + ch.linesAdded +
-                                " | " + ch.linesDeleted + " |\n");
+                        w.write("| " + ch.getType() + " | `" + escape(path) +
+                                "` | " + ch.getLinesAdded() +
+                                " | " + ch.getLinesDeleted() + " |\n");
                     }
                     w.write("\n");
                 }
 
-                if (c.patchSnippet != null) {
+                if (c.getPatchSnippet() != null) {
                     w.write("<details><summary>Patch</summary>\n\n```diff\n");
-                    w.write(c.patchSnippet);
+                    w.write(c.getPatchSnippet());
                     w.write("\n```\n</details>\n\n");
                 }
             }

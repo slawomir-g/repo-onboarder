@@ -3,8 +3,8 @@ package com.jlabs.repo.onboarder.service;
 import com.jlabs.repo.onboarder.config.AiProperties;
 import com.jlabs.repo.onboarder.model.DocumentationResult;
 import com.jlabs.repo.onboarder.model.GitReport;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
@@ -14,25 +14,14 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
+@Slf4j
 public class DocumentationGenerationService {
-
-    private static final Logger logger = LoggerFactory.getLogger(DocumentationGenerationService.class);
 
     private final PromptConstructionService promptConstructionService;
     private final RepositoryCacheService repositoryCacheService;
     private final AiProperties aiProperties;
     private final List<DocumentGenerationService> documentGenerators;
-
-    public DocumentationGenerationService(
-            PromptConstructionService promptConstructionService,
-            RepositoryCacheService repositoryCacheService,
-            AiProperties aiProperties,
-            List<DocumentGenerationService> documentGenerators) {
-        this.promptConstructionService = promptConstructionService;
-        this.repositoryCacheService = repositoryCacheService;
-        this.aiProperties = aiProperties;
-        this.documentGenerators = documentGenerators;
-    }
 
     /**
      * Generuje dokumentację dla repozytorium używając AI modelu z wykorzystaniem
@@ -56,7 +45,7 @@ public class DocumentationGenerationService {
      * @return wynik generacji dokumentacji
      */
     public DocumentationResult generateDocumentation(GitReport report, Path repoRoot, Path debugOutputDir) {
-        logger.info("Rozpoczęcie generacji dokumentacji dla repo: {}", report.repo.url);
+        log.info("Rozpoczęcie generacji dokumentacji dla repo: {}", report.getRepo().getUrl());
 
         // 1. Zapewnij dostępność cache (jeden raz dla wszystkich dokumentów)
         String repositoryContentCacheName = ensureRepositoryContentCache(report, repoRoot, debugOutputDir);
@@ -68,10 +57,10 @@ public class DocumentationGenerationService {
             generator.generate(result, report, repoRoot, debugOutputDir, repositoryContentCacheName);
         }
 
-        logger.info("Dokumentacja wygenerowana pomyślnie");
-        logger.debug("AI Context File długość: {} znaków",
+        log.info("Dokumentacja wygenerowana pomyślnie");
+        log.debug("AI Context File długość: {} znaków",
                 result.getAiContextFile() != null ? result.getAiContextFile().length() : 0);
-        logger.debug("README długość: {} znaków",
+        log.debug("README długość: {} znaków",
                 result.getReadme() != null ? result.getReadme().length() : 0);
 
         return result;
@@ -88,7 +77,7 @@ public class DocumentationGenerationService {
      *         cache niedostępny
      */
     private String ensureRepositoryContentCache(GitReport report, Path repoRoot, Path debugOutputDir) {
-        String repoUrl = report.repo.url;
+        String repoUrl = report.getRepo().getUrl();
         String model = aiProperties.getChat().getOptions().getModel();
 
         // 1. Sprawdź czy cache dla repozytorium już istnieje
@@ -96,12 +85,12 @@ public class DocumentationGenerationService {
 
         if (cachedContentName.isPresent()) {
             // Cache istnieje - zwróć jego nazwę
-            logger.info("Używanie istniejącego cache dla repo: {}", repoUrl);
+            log.info("Używanie istniejącego cache dla repo: {}", repoUrl);
             return cachedContentName.get();
         }
 
         // 2. Cache nie istnieje - spróbuj utworzyć nowy
-        logger.info("Cache nie istnieje dla repo: {}, próba utworzenia nowego...", repoUrl);
+        log.info("Cache nie istnieje dla repo: {}, próba utworzenia nowego...", repoUrl);
 
         // Przygotuj repository context XML
         String repoContextXml = promptConstructionService.prepareRepositoryContext(report, repoRoot);
@@ -111,10 +100,10 @@ public class DocumentationGenerationService {
         String newCacheName = repositoryCacheService.createCachedContent(repoUrl, repoContextXml, model);
 
         if (newCacheName != null) {
-            logger.info("Cache został utworzony pomyślnie");
+            log.info("Cache został utworzony pomyślnie");
             return newCacheName;
         } else {
-            logger.info("Cache nie jest dostępny, będzie używany tradycyjny prompt z pełnym kontekstem");
+            log.info("Cache nie jest dostępny, będzie używany tradycyjny prompt z pełnym kontekstem");
             return null;
         }
     }
@@ -132,9 +121,9 @@ public class DocumentationGenerationService {
         try {
             Path debugFile = outputDir.resolve(filename);
             Files.writeString(debugFile, content, StandardCharsets.UTF_8);
-            logger.debug("Zapisano plik debugowania: {}", debugFile);
+            log.debug("Zapisano plik debugowania: {}", debugFile);
         } catch (Exception e) {
-            logger.warn("Nie udało się zapisać pliku debugowania {}: {}", filename, e.getMessage());
+            log.warn("Nie udało się zapisać pliku debugowania {}: {}", filename, e.getMessage());
         }
     }
 }

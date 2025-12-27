@@ -3,7 +3,6 @@ package com.jlabs.repo.onboarder.git;
 import com.jlabs.repo.onboarder.model.GitReport;
 import org.springframework.stereotype.Service;
 
-
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.treewalk.TreeWalk;
 
@@ -34,6 +33,6 @@ public class GitFileCollector {
         }
 
         Collections.sort(files);
-        report.allFilesAtHead = files;
+        report.setAllFilesAtHead(files);
     }
 }

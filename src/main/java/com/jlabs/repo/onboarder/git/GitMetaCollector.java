@@ -22,22 +22,24 @@ public class GitMetaCollector {
             String repoUrl,
             String branch,
             String workDir,
-            GitReport report
-    ) throws Exception {
+            GitReport report) throws Exception {
 
         // ===== BASIC REPO INFO =====
-        report.repo.url = repoUrl;
-        report.repo.branch = branch;
-        report.repo.workdir = workDir;
+        // ===== BASIC REPO INFO =====
+        report.getRepo().setUrl(repoUrl);
+        report.getRepo().setBranch(branch);
+        report.getRepo().setWorkdir(workDir);
 
         // ===== HEAD INFO =====
         ObjectId head = repo.resolve(Constants.HEAD);
         if (head != null) {
-            report.repo.headCommit = head.getName();
-            try (RevWalk walk = new RevWalk(repo)) {
-                RevCommit c = walk.parseCommit(head);
-                report.repo.headShortMessage = c.getShortMessage();
-                report.repo.headCommitTime = Instant.ofEpochSecond(c.getCommitTime());
+            if (head != null) {
+                report.getRepo().setHeadCommit(head.getName());
+                try (RevWalk walk = new RevWalk(repo)) {
+                    RevCommit c = walk.parseCommit(head);
+                    report.getRepo().setHeadShortMessage(c.getShortMessage());
+                    report.getRepo().setHeadCommitTime(Instant.ofEpochSecond(c.getCommitTime()));
+                }
             }
         }
 
@@ -47,31 +49,33 @@ public class GitMetaCollector {
 
         for (String remote : remoteNames) {
             GitReport.RemoteInfo ri = new GitReport.RemoteInfo();
-            ri.name = remote;
+            ri.setName(remote);
 
             String[] urls = cfg.getStringList("remote", remote, "url");
             if (urls != null) {
-                ri.uris.addAll(Arrays.asList(urls));
+                ri.getUris().addAll(Arrays.asList(urls));
             }
 
-            report.remotes.add(ri);
+            report.getRemotes().add(ri);
         }
 
         // ===== BRANCHES (LOCAL + REMOTE) =====
-        report.branches = git.branchList()
+        // ===== BRANCHES (LOCAL + REMOTE) =====
+        report.setBranches(git.branchList()
                 .setListMode(ListBranchCommand.ListMode.ALL)
                 .call()
                 .stream()
                 .map(Ref::getName)
                 .sorted()
-                .toList();
+                .toList());
 
         // ===== TAGS =====
-        report.tags = git.tagList()
+        // ===== TAGS =====
+        report.setTags(git.tagList()
                 .call()
                 .stream()
                 .map(Ref::getName)
                 .sorted()
-                .toList();
+                .toList());
     }
 }

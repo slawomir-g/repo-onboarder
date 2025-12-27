@@ -22,7 +22,7 @@ public class OnboarderApplication implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        logger.info("Documentation is available in: http://localhost:8080/swagger-ui.html\n");
+        logger.info("Documentation is available in: http://localhost:8080/swagger-ui.html");
         logger.info("Application is available in: http://localhost:8080\n");
     }
 }

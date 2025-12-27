@@ -25,7 +25,7 @@ public class SourceCodeCorpusPayloadWriter {
     public String generate(GitReport report, Path repoRoot) {
         StringBuilder sb = new StringBuilder();
 
-        for (String relativePath : report.allFilesAtHead) {
+        for (String relativePath : report.getAllFilesAtHead()) {
             if (relativePath.contains("test")) {
                 continue;
             }

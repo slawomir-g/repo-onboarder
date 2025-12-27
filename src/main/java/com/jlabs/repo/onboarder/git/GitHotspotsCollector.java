@@ -7,25 +7,24 @@ import org.springframework.stereotype.Service;
 public class GitHotspotsCollector {
 
     public void collect(GitReport report) {
-        report.fileStats.clear();
+        report.getFileStats().clear();
 
-        for (GitReport.CommitInfo commit : report.commits) {
-            for (GitReport.CommitInfo.FileChange change : commit.changes) {
+        for (GitReport.CommitInfo commit : report.getCommits()) {
+            for (GitReport.CommitInfo.FileChange change : commit.getChanges()) {
 
-                String path = change.newPath != null
-                        ? change.newPath
-                        : change.oldPath;
+                String path = change.getNewPath() != null
+                        ? change.getNewPath()
+                        : change.getOldPath();
 
                 if (path == null || path.isBlank()) {
                     continue;
                 }
 
-                GitReport.FileStats stats =
-                        report.fileStats.computeIfAbsent(path, p -> new GitReport.FileStats());
+                GitReport.FileStats stats = report.getFileStats().computeIfAbsent(path, p -> new GitReport.FileStats());
 
-                stats.commits++;
-                stats.linesAdded += change.linesAdded;
-                stats.linesDeleted += change.linesDeleted;
+                stats.setCommits(stats.getCommits() + 1);
+                stats.setLinesAdded(stats.getLinesAdded() + change.getLinesAdded());
+                stats.setLinesDeleted(stats.getLinesDeleted() + change.getLinesDeleted());
             }
         }
     }

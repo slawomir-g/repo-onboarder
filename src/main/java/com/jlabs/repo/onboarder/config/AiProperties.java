@@ -1,14 +1,17 @@
 package com.jlabs.repo.onboarder.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import lombok.Data;
 
 import java.time.Duration;
 
 /**
  * Konfiguracja właściwości dla integracji z Spring AI i Google Gemini API.
- * Właściwości są ładowane z application.yml z prefiksem "spring.ai.google.genai".
+ * Właściwości są ładowane z application.yml z prefiksem
+ * "spring.ai.google.genai".
  */
 @ConfigurationProperties(prefix = "spring.ai.google.genai")
+@Data
 public class AiProperties {
 
     /**
@@ -27,50 +30,20 @@ public class AiProperties {
      */
     private Retry retry = new Retry();
 
-    public String getApiKey() {
-        return apiKey;
-    }
-
-    public void setApiKey(String apiKey) {
-        this.apiKey = apiKey;
-    }
-
-    public Chat getChat() {
-        return chat;
-    }
-
-    public void setChat(Chat chat) {
-        this.chat = chat;
-    }
-
-    public Retry getRetry() {
-        return retry;
-    }
-
-    public void setRetry(Retry retry) {
-        this.retry = retry;
-    }
-
     /**
      * Konfiguracja opcji chat modelu Gemini.
      */
+    @Data
     public static class Chat {
         /**
          * Opcje chat modelu.
          */
         private Options options = new Options();
 
-        public Options getOptions() {
-            return options;
-        }
-
-        public void setOptions(Options options) {
-            this.options = options;
-        }
-
         /**
          * Szczegółowe opcje chat modelu.
          */
+        @Data
         public static class Options {
             /**
              * Nazwa modelu Gemini do użycia (np. "gemini-1.5-pro", "gemini-2.0-flash").
@@ -92,44 +65,13 @@ public class AiProperties {
             private Integer maxOutputTokens = 8192;
 
             private Duration repositoryCacheTtl = Duration.ofHours(1);
-
-            public Duration getRepositoryCacheTtl() {
-                return repositoryCacheTtl;
-            }
-        
-            public void setRepositoryCacheTtl(Duration ttl) {
-                this.repositoryCacheTtl = ttl;
-            }
-
-            public String getModel() {
-                return model;
-            }
-
-            public void setModel(String model) {
-                this.model = model;
-            }
-
-            public double getTemperature() {
-                return temperature;
-            }
-
-            public void setTemperature(double temperature) {
-                this.temperature = temperature;
-            }
-
-            public Integer getMaxOutputTokens() {
-                return maxOutputTokens;
-            }
-
-            public void setMaxOutputTokens(Integer maxOutputTokens) {
-                this.maxOutputTokens = maxOutputTokens;
-            }
         }
     }
 
     /**
      * Konfiguracja strategii retry z exponential backoff.
      */
+    @Data
     public static class Retry {
         /**
          * Maksymalna liczba prób retry.
@@ -155,38 +97,5 @@ public class AiProperties {
          * Domyślnie: 30000ms (30 sekund)
          */
         private long maxDelayMs = 30000;
-
-        public int getMaxAttempts() {
-            return maxAttempts;
-        }
-
-        public void setMaxAttempts(int maxAttempts) {
-            this.maxAttempts = maxAttempts;
-        }
-
-        public long getInitialDelayMs() {
-            return initialDelayMs;
-        }
-
-        public void setInitialDelayMs(long initialDelayMs) {
-            this.initialDelayMs = initialDelayMs;
-        }
-
-        public double getMultiplier() {
-            return multiplier;
-        }
-
-        public void setMultiplier(double multiplier) {
-            this.multiplier = multiplier;
-        }
-
-        public long getMaxDelayMs() {
-            return maxDelayMs;
-        }
-
-        public void setMaxDelayMs(long maxDelayMs) {
-            this.maxDelayMs = maxDelayMs;
-        }
     }
 }
-
