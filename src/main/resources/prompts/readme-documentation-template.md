@@ -4,6 +4,10 @@
 - Explain what the project does and why it exists (1–3 short paragraphs).
 - Mention the primary use-case and intended audience (developers, operators, end users).
 
+## How it works?
+- Describe how it works with high level language, but still keep attention to details
+- Description should be presented in steps for easier understanding
+
 ## Key Features
 - List the most important features as bullet points. Focus on mostly on domain.
 
@@ -11,7 +15,12 @@
 - List dependencies on external services, APIs if there are any. If applications is not using explicit external services skip this part.
 
 ## Flows
-- Create flow diagrams so developer could easily understand how logic works inside. For each domain feature create separate flow. If there are many flows constraint to 5-10 most important. Flows should be in ascii art. Add descriptions to each step.
+- Create flow diagrams so developer could easily understand how logic works inside. 
+- For each domain feature create separate flow. 
+- If there are many flows constraint to 5-10 most important. 
+- Flows should be in ascii art. 
+- Add descriptions to each step. 
+- Flow should be validated correctly presents branches and sequential steps.
 
 ## Architecture Overview
 - Provide a short high-level architecture description based strictly on the repository structure and code.
