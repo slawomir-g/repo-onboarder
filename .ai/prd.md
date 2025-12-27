@@ -2,13 +2,14 @@
 
 ## 1. Product Overview
 
-Repo Onboarder is an AI-powered documentation generation service designed to accelerate developer onboarding to new projects. 
+Repo Onboarder is an AI-powered documentation generation service designed to accelerate developer onboarding to new projects.
 The application analyzes public Git repositories, extracts project structure and development history, and generates comprehensive documentation for both human developers and AI coding assistants.
 
-The system operates as a REST API service built on Java 25 and Spring Boot 4, utilizing Google's Gemini 2.5 Pro model via Spring AI framework. 
+The system operates as a REST API service built on Java 21 and Spring Boot 4, utilizing Google's Gemini 2.5 Pro model via Spring AI framework.
 The application is distributed as a locally executable JAR file, allowing users to run it on their own infrastructure with their own API credentials.
 
 Key capabilities include:
+
 - Automated analysis of repository structure and codebase
 - Git history analysis to identify frequently modified files (hotspots)
 - Generation of human-readable documentation in Markdown format
@@ -38,58 +39,64 @@ Repo Onboarder addresses these problems by automatically generating high-quality
 
 ### 3.1 REST API Endpoints
 
-#### 3.1.1 POST /analyze
-Initiates repository analysis process. Accepts repository URL and optional authentication token. Returns a job identifier (job_id) immediately, allowing asynchronous processing.
+#### 3.1.1 POST /api/git-core/run
 
-Input Parameters:
-- repositoryUrl (required): Valid Git repository URL (public repositories only)
+Initiates repository analysis and waits for completion. Returns the generated documentation immediately in the response body.
+
+Input Parameters (Query Parameters):
+
+- repoUrl (required): Valid Git repository URL (public repositories only)
+- branch (optional): Branch to analyze (default: based on configuration)
+- withTest (optional): Whether to include test files in analysis (boolean, default: false)
 
 Response:
-- jobId: Unique identifier for tracking the analysis job
-- status: Initial status (typically "PENDING" or "PROCESSING")
 
-#### 3.1.2 GET /results/{jobId}
-Retrieves the status and results of an analysis job. Returns processing status and, upon completion, the generated documentation in JSON format.
+- 200 OK: JSON object containing generated documentation (DocumentationResult)
+  - documents: Map of document types to their content (e.g., "README", "ARCHITECTURE", "DDD_REFACTORING", "AI_CONTEXT")
+- 500 Internal Server Error: Error message if analysis fails
 
-Response Fields:
-- status: Current job status (PENDING, PROCESSING, COMPLETED, FAILED)
-- result: JSON object containing generated documentation (only present when status is COMPLETED)
-  - readme: Markdown content for README.md
-  - architecture: Markdown content for architecture documentation
-  - contextFile: Optimized context file content for AI agents
-- error: Error message (only present when status is FAILED)
-- progress: Optional progress indicator or log messages
+_(Note: The previous asynchronous job model with /analyze and /results/{jobId} has been replaced by this synchronous endpoint for the current version.)_
 
 ### 3.2 Repository Analysis
 
 #### 3.2.1 Repository Cloning
+
 The system must clone public Git repositories to a temporary working directory. The cloning process must:
+
 - Support standard Git URL formats (HTTPS, SSH)
 - Handle cloning failures gracefully with appropriate error messages
 - Clean up temporary directories after processing (unless debug mode is enabled)
 
 #### 3.2.2 Technology Stack Detection
+
 The system must identify the project's technology stack by analyzing configuration files:
+
 - Java/Maven: Detection via pom.xml presence
 - JavaScript/TypeScript/NPM: Detection via package.json presence
 - Support for single-module projects only in MVP
 - Reject or handle multi-module projects appropriately
 
 #### 3.2.3 File Structure Analysis
+
 The system must analyze the repository structure to:
+
 - Map directory hierarchy
 - Identify source files vs. configuration files vs. documentation files
 - Apply file filtering based on built-in exclusion lists and user configuration
 - Extract relevant file content for documentation generation
 
 #### 3.2.4 Dependency Analysis
+
 The system must perform static analysis of dependency configuration files:
+
 - For Maven projects: Parse pom.xml to extract dependencies
 - For NPM projects: Parse package.json to extract dependencies
 - No execution of build processes (static analysis only)
 
 #### 3.2.5 Git History Analysis
+
 The system must analyze Git commit history from the last 12 months to:
+
 - Identify files that are most frequently modified (hotspots)
 - Calculate change frequency metrics
 - Use this information as additional context for the AI model (not as a separate documentation section)
@@ -97,7 +104,9 @@ The system must analyze Git commit history from the last 12 months to:
 ### 3.3 AI-Powered Documentation Generation
 
 #### 3.3.1 Prompt Construction
+
 The system must build a single comprehensive prompt containing:
+
 - Project structure and file hierarchy
 - Source file contents (filtered and processed)
 - Dependency information
@@ -105,7 +114,9 @@ The system must build a single comprehensive prompt containing:
 - Instructions for generating documentation
 
 #### 3.3.2 AI Model Integration
+
 The system must communicate with Gemini 2.5 Pro via Spring AI framework:
+
 - **Infrastructure Layer (`ChatModelClient`):**
   - Enkapsuluje wszystkie szczegóły komunikacji z Spring AI `ChatModel`
   - Implementuje exponential backoff retry strategy dla błędów API używając Spring Retry framework
@@ -113,14 +124,18 @@ The system must communicate with Gemini 2.5 Pro via Spring AI framework:
   - Obsługuje rate limiting z odpowiednimi opóźnieniami (błędy rate limit są wykluczone z retry)
   - Wyklucza błędy autoryzacji z retry (błędy nieprawidłowego API key kończą się natychmiast)
   - Konwertuje `ChatResponse` na prosty `String` dla warstwy biznesowej
-- **Service Layer (`DocumentationGenerationService`):**
+- **Service Layer (`DocumentGenerationService` hierarchy):**
+  - Abstract base class `DocumentGenerationService` defining the template method for generation.
+  - Concrete implementations (e.g., `ReadmeGenerationService`, `DddRefactoringGenerationService`) defining specific prompt templates and document types.
   - Używa `ChatModelClient` jako abstrakcji infrastrukturalnej
   - Skupia się na logice biznesowej: konstruowaniu promptów i parsowaniu odpowiedzi JSON
   - Nie zawiera szczegółów implementacji Spring AI ani retry logic
 - **Configuration:** API key i parametry retry konfigurowane przez `application.yml` i `AiProperties`
 
 #### 3.3.3 Documentation Output
+
 The system must generate three types of documentation:
+
 - README.md: Comprehensive project overview, setup instructions, and key information for developers
 - Architecture Documentation: Detailed architecture description, design patterns, and project structure
 - Context File: Optimized file for AI coding assistants containing project structure, conventions, and key information
@@ -130,19 +145,25 @@ All documentation must be returned as JSON structure containing the Markdown con
 ### 3.4 Configuration and Customization
 
 #### 3.4.1 File Exclusion Configuration
+
 Users must be able to configure custom file exclusion patterns:
+
 - Configuration via application.properties or configuration file
 - Merge with built-in exclusion lists
 - Support for glob patterns or regex patterns
 
 #### 3.4.2 Debug Mode
+
 The system must support developer mode with:
+
 - debug.save-prompts flag: Save AI prompts to disk for inspection
 - clean=false flag: Retain temporary working directories after processing
 - Enhanced console logging for development purposes
 
 #### 3.4.3 API Key Configuration
+
 Users must configure their Gemini API key:
+
 - Configuration via application.properties file
 - Secure handling of API credentials
 - Clear error messages when API key is missing or invalid
@@ -150,7 +171,9 @@ Users must configure their Gemini API key:
 ### 3.5 Error Handling and Resilience
 
 #### 3.5.1 Error Handling
+
 The system must handle various error scenarios:
+
 - Invalid repository URLs
 - Repository cloning failures
 - Unsupported technology stacks
@@ -159,13 +182,17 @@ The system must handle various error scenarios:
 - Processing timeouts
 
 #### 3.5.2 Rate Limiting
+
 The system must implement simple rate limiting:
+
 - Thread.sleep-based rate limiting for API calls
 - Configurable delays between requests
 - Respect external API rate limits
 
 #### 3.5.3 Progress Logging
+
 The system must provide progress information:
+
 - Console logging of processing stages
 - Optional progress updates in API responses
 - Clear indication of current processing step
@@ -180,7 +207,9 @@ The system must provide progress information:
 - JavaScript/TypeScript/NPM projects
 - Static dependency analysis (no build execution)
 - Git history analysis (last 12 months)
-- Asynchronous REST API
+- Synchronous REST API
+- Basic Graphic User Interface (Web UI) for viewing results
+- Swagger UI integration
 - JSON output format
 - Local JAR distribution
 - Console-based progress logging
@@ -188,7 +217,7 @@ The system must provide progress information:
 
 ### 4.2 Out of Scope (MVP)
 
-- Graphical User Interface (GUI)
+- Complex Asynchronous Job Queues (moved to future scope)
 - IDE Integration (IntelliJ, VS Code plugins)
 - MCP Server implementation
 - Large repositories (>50k lines of code) - no hard limit enforced, but not optimized
@@ -197,7 +226,7 @@ The system must provide progress information:
 - Other technology stacks (Python, Go, Ruby, etc.)
 - Dynamic code analysis (running builds or tests)
 - Automated testing in CI/CD pipeline
-- User authentication and authorization 
+- User authentication and authorization
 - Database persistence of results
 - Result caching or history
 - Real-time WebSocket updates
@@ -208,7 +237,7 @@ The system must provide progress information:
 
 ### 4.3 Technical Constraints
 
-- Java 25 minimum requirement
+- Java 21 minimum requirement
 - Spring Boot 4 framework
 - Spring AI for LLM integration
 - Spring Retry for declarative retry handling
@@ -236,48 +265,32 @@ The system must provide progress information:
 
 ## 5. User Stories
 
-### US-001: Submit Repository for Analysis
+### US-001: Analyze Repository (Synchronous)
 
-Description: As a developer, I want to submit a public repository URL for analysis so that I can receive generated documentation.
-
-Acceptance Criteria:
-- User can send POST request to /analyze endpoint with repositoryUrl parameter
-- System validates repository URL format
-- System returns jobId immediately (within 2 seconds)
-- System returns status indicating job has been queued
-- System initiates background processing of the repository
-- Invalid URL format returns appropriate error response (400 Bad Request)
-
-### US-002: Check Analysis Job Status
-
-Description: As a developer, I want to check the status of my analysis job so that I know when documentation is ready.
+Description: As a developer, I want to submit a repository for analysis and receive the results in a single request so that I can immediately see the documentation.
 
 Acceptance Criteria:
-- User can send GET request to /results/{jobId} endpoint
-- System returns current job status (PENDING, PROCESSING, COMPLETED, FAILED)
-- System returns appropriate HTTP status codes
-- Valid jobId returns status information
-- Invalid jobId returns 404 Not Found error
-- Response includes timestamp information
 
-### US-003: Retrieve Generated Documentation
+- User sends POST request to /api/git-core/run?repoUrl=...
+- System blocks until analysis is complete
+- System returns 200 OK with full JSON documentation result upon success
+- System returns error status if analysis fails
+- Response contains map of all generated documents
 
-Description: As a developer, I want to retrieve the generated documentation when analysis is complete so that I can use it for onboarding.
+### US-002: (Deprecated/Removed) - Check Analysis Job Status
 
-Acceptance Criteria:
-- When job status is COMPLETED, GET /results/{jobId} returns documentation in JSON format
-- JSON response contains readme field with Markdown content
-- JSON response contains architecture field with Markdown content
-- JSON response contains contextFile field with optimized content for AI agents
-- All documentation fields are non-empty strings
-- Markdown content is properly formatted and valid
-- Response is returned within 5 seconds of request
+_(Merged into US-001 due to synchronous architecture change)_
+
+### US-003: (Deprecated/Removed) - Retrieve Generated Documentation
+
+_(Merged into US-001 due to synchronous architecture change)_
 
 ### US-004: Handle Invalid Repository URL
 
 Description: As a developer, I want to receive clear error messages when I provide an invalid repository URL so that I can correct my input.
 
 Acceptance Criteria:
+
 - System validates URL format before processing
 - Invalid URL format returns 400 Bad Request
 - Error message clearly indicates URL format issue
@@ -289,6 +302,7 @@ Acceptance Criteria:
 Description: As a developer, I want to receive clear error messages when repository cloning fails so that I understand what went wrong.
 
 Acceptance Criteria:
+
 - System attempts to clone repository after job creation
 - Cloning failures are caught and handled gracefully
 - Job status is updated to FAILED when cloning fails
@@ -301,6 +315,7 @@ Acceptance Criteria:
 Description: As a developer, I want to receive clear error messages when my repository uses an unsupported technology stack so that I understand the limitations.
 
 Acceptance Criteria:
+
 - System detects technology stack during analysis
 - Unsupported stacks (not Java/Maven or JS/TS/NPM) are identified
 - Job status is updated to FAILED with appropriate error message
@@ -312,6 +327,7 @@ Acceptance Criteria:
 Description: As a developer, I want to understand when my project structure is not supported so that I can adjust my expectations.
 
 Acceptance Criteria:
+
 - System detects multi-module project structure
 - Multi-module projects are rejected or handled appropriately
 - Job status is updated to FAILED with clear error message
@@ -323,6 +339,7 @@ Acceptance Criteria:
 Description: As a developer, I want the system to handle empty repositories gracefully so that I receive appropriate feedback.
 
 Acceptance Criteria:
+
 - System detects empty repositories (no files or only .git directory)
 - Empty repository is handled without crashing
 - Job status is updated to FAILED or returns minimal documentation
@@ -334,6 +351,7 @@ Acceptance Criteria:
 Description: As a developer, I want the system to handle repositories without sufficient Git history so that analysis can still proceed.
 
 Acceptance Criteria:
+
 - System detects repositories with no commits or insufficient history
 - Analysis proceeds without Git history data
 - Hotspot analysis is skipped gracefully
@@ -346,6 +364,7 @@ Acceptance Criteria:
 Description: As a developer, I want the system to handle API rate limits gracefully so that my requests eventually complete successfully.
 
 Acceptance Criteria:
+
 - System detects rate limit errors from Gemini API
 - Exponential backoff retry strategy is implemented using Spring Retry framework
 - System retries failed requests with increasing delays (configurable via application.yml)
@@ -360,6 +379,7 @@ Acceptance Criteria:
 Description: As a developer, I want clear error messages when API key is missing so that I can configure it properly.
 
 Acceptance Criteria:
+
 - System checks for Gemini API key on startup
 - Missing API key prevents job processing
 - Error message clearly indicates missing API key
@@ -371,6 +391,7 @@ Acceptance Criteria:
 Description: As a developer, I want clear error messages when my API key is invalid so that I can correct it.
 
 Acceptance Criteria:
+
 - System validates API key during first API call
 - Invalid API key results in job failure
 - Error message indicates authentication failure
@@ -382,6 +403,7 @@ Acceptance Criteria:
 Description: As a developer, I want to configure custom file exclusion patterns so that irrelevant files are not included in analysis.
 
 Acceptance Criteria:
+
 - User can configure exclusion patterns in application.properties
 - Custom exclusions are merged with built-in exclusion lists
 - Exclusion patterns support glob or regex syntax
@@ -394,6 +416,7 @@ Acceptance Criteria:
 Description: As a developer, I want to enable debug mode so that I can inspect prompts and temporary files during development.
 
 Acceptance Criteria:
+
 - User can set debug.save-prompts flag in configuration
 - When enabled, AI prompts are saved to disk
 - User can set clean=false flag to retain temporary directories
@@ -406,6 +429,7 @@ Acceptance Criteria:
 Description: As a developer, I want to see progress information during analysis so that I know the system is working.
 
 Acceptance Criteria:
+
 - System logs progress messages to console
 - Progress messages indicate current processing stage
 - Logging includes: cloning, analysis, AI processing, completion
@@ -417,6 +441,7 @@ Acceptance Criteria:
 Description: As a developer, I want the system to handle long-running processes gracefully so that resources are not indefinitely consumed.
 
 Acceptance Criteria:
+
 - System implements timeout mechanism for analysis jobs
 - Timeout duration is configurable
 - Jobs exceeding timeout are marked as FAILED
@@ -429,6 +454,7 @@ Acceptance Criteria:
 Description: As a developer, I want the system to handle large repositories appropriately even though they are not optimized in MVP.
 
 Acceptance Criteria:
+
 - System processes repositories of various sizes
 - No hard limit prevents processing
 - System handles memory constraints gracefully
@@ -441,6 +467,7 @@ Acceptance Criteria:
 Description: As a developer, I want to receive well-formatted Markdown documentation so that I can quickly understand the project.
 
 Acceptance Criteria:
+
 - Generated README.md contains project overview
 - Generated README.md includes setup instructions
 - Generated README.md includes key project information
@@ -454,6 +481,7 @@ Acceptance Criteria:
 Description: As a developer using AI coding assistants, I want to receive an optimized context file so that my AI assistant understands the project.
 
 Acceptance Criteria:
+
 - Context file contains project structure information
 - Context file includes coding conventions and patterns
 - Context file is optimized for AI consumption
@@ -466,6 +494,7 @@ Acceptance Criteria:
 Description: As a developer with a Java/Maven project, I want the system to correctly analyze my project structure and dependencies.
 
 Acceptance Criteria:
+
 - System detects Java/Maven project via pom.xml
 - System parses pom.xml for dependency information
 - System identifies Java source files correctly
@@ -478,6 +507,7 @@ Acceptance Criteria:
 Description: As a developer with a JavaScript/TypeScript/NPM project, I want the system to correctly analyze my project structure and dependencies.
 
 Acceptance Criteria:
+
 - System detects JS/TS/NPM project via package.json
 - System parses package.json for dependency information
 - System identifies JavaScript/TypeScript source files correctly
@@ -490,6 +520,7 @@ Acceptance Criteria:
 Description: As a developer, I want the system to identify frequently modified files so that documentation reflects active development areas.
 
 Acceptance Criteria:
+
 - System analyzes Git commits from last 12 months
 - System calculates file modification frequency
 - Hotspot data is included in AI prompt as context
@@ -502,6 +533,7 @@ Acceptance Criteria:
 Description: As a developer, I want irrelevant files excluded from analysis so that documentation focuses on important code.
 
 Acceptance Criteria:
+
 - Built-in exclusion list filters common irrelevant files (node_modules, .git, build artifacts, etc.)
 - User-configured exclusions are applied
 - Only source files and relevant configuration are analyzed
@@ -513,6 +545,7 @@ Acceptance Criteria:
 Description: As a developer integrating with the API, I want consistent JSON response format so that I can parse results reliably.
 
 Acceptance Criteria:
+
 - All API responses are valid JSON
 - Response structure is consistent across endpoints
 - Error responses follow consistent format
@@ -525,6 +558,7 @@ Acceptance Criteria:
 Description: As a developer, I want to submit multiple analysis jobs so that I can process multiple repositories.
 
 Acceptance Criteria:
+
 - System accepts multiple concurrent job requests
 - Each job receives unique jobId
 - Jobs are processed independently
@@ -572,13 +606,25 @@ Acceptance Criteria:
 
 ## 7. Implementation Status
 
-### 7.1 Current Progress (Updated: January 2025)
+### 7.1 Current Progress (Updated: December 2025)
 
-The project has completed the **Core Logic Implementation** phase. The application currently operates as a **CLI application** using Spring Boot's `CommandLineRunner` interface. All core functionality for repository analysis and AI-powered documentation generation is fully implemented and working.
+The project has transitioned from a pure CLI application to a **Web Application** exposing a REST API and a basic UI. The core analysis logic is fully integrated behind a synchronous endpoint.
 
 #### Completed Features ✅
 
+- **REST API Layer:**
+
+  - `GitCoreController` implemented with `/api/git-core/run` endpoint
+  - Synchronous execution model returning `DocumentationResult`
+  - Swagger UI integration for API documentation and testing
+
+- **Web Interface:**
+
+  - Static `index.html` for viewing results
+  - Integration with backend API
+
 - **Git Operations Core:**
+
   - Repository cloning and checkout mechanism via JGit
   - Full Git analysis pipeline:
     - Metadata collection (`GitMetaCollector`)
@@ -589,146 +635,51 @@ The project has completed the **Core Logic Implementation** phase. The applicati
   - Temporary working directory management
 
 - **AI Integration (Fully Implemented):**
+
   - **Infrastructure Layer:** `ChatModelClient` (in `infrastructure.springai` package):
+
     - Spring AI `ChatModel` API integration with Google Gemini 2.5 Pro
     - Exponential backoff retry strategy using Spring Retry framework (`@Retryable` annotation)
-    - Comprehensive error handling:
-      - Rate limit errors (429) - excluded from retry, fail immediately
-      - Authentication errors - excluded from retry, fail immediately
-      - Transient errors - retry with exponential backoff
-    - Conversion of `ChatResponse` to `String` for business layer
-    - Retry parameters configurable via SpEL expressions reading from `AiProperties`
-    - Configurable retry limits (max attempts, initial delay, multiplier, max delay)
-  
-  - **Service Layer:** `DocumentationGenerationService`:
-    - High-level business logic for documentation generation
-    - Prompt construction delegated to `PromptConstructionService`
-    - AI interaction via `ChatModelClient` (infrastructure abstraction)
-    - JSON response parsing and validation
-    - Documentation result assembly (`DocumentationResult` model)
-  
+
+  - **Service Layer Refactoring:**
+
+    - Refactored `DocumentationGenerationService` into an abstract `DocumentGenerationService` strategy.
+    - Concrete implementations: `ReadmeGenerationService`, `ArchitectureGenerationService`, `ContextFileGenerationService`, `DddRefactoringGenerationService`.
+    - Template Method pattern used for consistent generation workflow (Prompt -> Call -> Post-process -> Save).
+
   - **Prompt Construction:** `PromptConstructionService`:
     - Builds comprehensive context-aware prompts
-    - Incorporates project structure, source code corpus, dependency information, and Git hotspots
     - Uses template-based prompt generation from resources
 
 - **Documentation Generation:**
-  - Generates three types of documentation:
-    - `README.md` - Project overview, setup instructions, key information
-    - `ARCHITECTURE.md` - Detailed architecture description and design patterns
-    - `AI_CONTEXT_FILE.md` - Optimized context file for AI coding assistants
-  - All documentation saved to disk in `working_directory/` folder
-  - Markdown format with proper formatting
+  - Generates types: `README`, `ARCHITECTURE`, `AI_CONTEXT`, `DDD_REFACTORING`
+  - Dynamic result map in `DocumentationResult`
 
-- **Data Collection & Payload Generation:**
-  - All context payloads are generated and saved for debugging:
-    - `COMMIT_HISTORY_PAYLOAD.txt` - Git commit history
-    - `DIRECTORY_TREE_PAYLOAD.txt` - Repository file structure
-    - `HOTSPOTS_PAYLOAD.txt` - Frequently modified files analysis
-    - `SOURCE_CODE_CORPUS_PAYLOAD.txt` - Filtered source code content
-
-- **Configuration Management:**
-  - `GitCoreProperties` - Git repository settings, limits, output configuration
-  - `AiProperties` - AI model configuration, retry parameters, API key
-  - `@EnableConfigurationProperties` configured in `OnboarderApplication`
-  - YAML-based configuration via `application.yml` and `application-local.yml`
-  - Support for custom file exclusion patterns (via configuration)
-
-- **Error Handling:**
-  - Custom exception hierarchy:
-    - `AiException` - Base exception for AI-related errors
-    - `AiApiKeyException` - Missing or invalid API key
-    - `AiRateLimitException` - Rate limiting errors
-    - `AiResponseParseException` - JSON parsing failures
-    - `AiTimeoutException` - Timeout errors
-    - `PromptConstructionException` - Prompt building errors
-  - Graceful error handling throughout the pipeline
-
-- **Architecture:**
-  - Clear separation of concerns:
-    - Infrastructure layer (`infrastructure.springai`) - low-level AI communication
-    - Service layer (`service`) - business logic
-    - Git layer (`git`) - Git operations
-    - Model layer (`model`) - data structures
-  - Dependency injection via Spring Framework
-  - Service-oriented architecture
-
-- **CLI Interface:**
-  - Application runs via `CommandLineRunner` interface
-  - Configuration-driven repository URL (via `application.yml`)
-  - Console logging for progress tracking
-  - File-based output for generated documentation
-
-#### Not Implemented ❌
-
-- **REST API Layer:**
-  - No REST controllers implemented
-  - No `@RestController` classes exist
-  - No HTTP endpoints exposed
+#### Not Implemented / Deferred ❌
 
 - **Asynchronous Job Processing:**
-  - No job queue mechanism
-  - No job ID generation or tracking
-  - No job status management (PENDING, PROCESSING, COMPLETED, FAILED)
-  - No in-memory or persistent job storage
 
-- **API Endpoints:**
-  - `POST /analyze` - Not implemented
-  - `GET /results/{jobId}` - Not implemented
-  - No request/response DTOs for API
+  - Queue mechanism and polling endpoints defined in original PRD are deferred.
+  - Current implementation is synchronous.
 
-- **Asynchronous Execution:**
-  - Current implementation is synchronous (blocks until completion)
-  - No background task execution
-  - No `@Async` or executor service configuration
+- **Private Repositories:**
+  - Auth token support explicitly
 
 #### Current Architecture
 
-The application currently operates in **CLI mode**:
-1. Application starts via `OnboarderApplication.main()`
-2. `CommandLineRunner.run()` executes immediately on startup
-3. `GitCoreRunner.run()` orchestrates the full pipeline:
-   - Git repository cloning
-   - Git analysis (metadata, files, commits, hotspots)
-   - Prompt construction
-   - AI-powered documentation generation
-   - File output to disk
-4. Application terminates after completion
+The application operates as a **Spring Boot Web Application**:
 
-#### Next Steps (Priority Order)
+1. Application starts via `OnboarderApplication` (Web Server mode).
+2. Users/UI call `POST /api/git-core/run`.
+3. `GitCoreController` delegates to `GitCoreRunner`.
+4. `GitCoreRunner` orchestrates the pipeline synchronously.
+5. Result is returned as JSON.
 
-1. **REST API Implementation:**
-   - Create `RestController` with `/analyze` and `/results/{jobId}` endpoints
-   - Define request/response DTOs
-   - Implement URL validation
+#### Next Steps
 
-2. **Job Management System:**
-   - Design job model (Job ID, status, timestamps, result, error)
-   - Implement in-memory job storage (Map-based for MVP)
-   - Generate unique job IDs (UUID-based)
-
-3. **Asynchronous Processing:**
-   - Refactor `GitCoreRunner` to be callable from service layer
-   - Implement `@Async` method for background execution
-   - Configure `ThreadPoolTaskExecutor` for async processing
-   - Update job status throughout processing lifecycle
-
-4. **Remove CLI Dependency:**
-   - Remove `CommandLineRunner` interface from `OnboarderApplication`
-   - Make application run as a web server (keep running, not terminate)
-   - Ensure application stays alive to serve API requests
-
-5. **Error Handling for API:**
-   - Map exceptions to appropriate HTTP status codes
-   - Return structured error responses
-   - Update job status to FAILED on errors
-
-#### Technical Debt / Future Considerations
-
-- Consider persistent job storage (database) for production use
-- Add job expiration/cleanup mechanism for old jobs
-- Implement job cancellation capability
-- Add rate limiting for API endpoints
-- Consider WebSocket support for real-time progress updates (out of scope for MVP)
-
-
+1. **Improve Error Handling:**
+   - Global Exception Handler for REST API to return proper HTTP codes.
+2. **UI Enhancements:**
+   - Better visualization of the markdown results (rendering vs raw).
+3. **Async Support (Future):**
+   - Re-introduce async processing if timeouts become an issue for large repos.

@@ -1,5 +1,8 @@
 package com.jlabs.repo.onboarder.model;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -17,27 +20,13 @@ import lombok.NoArgsConstructor;
 public class DocumentationResult {
 
     /**
-     * Zawartość README.md w formacie Markdown.
-     * Zawiera przegląd projektu, instrukcje setupu i kluczowe informacje dla
-     * deweloperów.
+     * Mapa przechowująca wygenerowane dokumenty.
+     * Klucz: nazwa typu dokumentu (np. "README.md", "Refactorings")
+     * Wartość: zawartość dokumentu w formacie Markdown
      */
-    private String readme;
+    private Map<String, String> documents = new LinkedHashMap<>();
 
-    /**
-     * Dokumentacja refaktoryzacji w formacie Markdown.
-     * Zawiera sugestie zmian w kodzie.
-     */
-    private String refactorings;
-
-    /**
-     * Plik kontekstu zoptymalizowany dla AI coding assistants.
-     * Zawiera strukturę projektu, konwencje kodowania i kluczowe informacje.
-     */
-    private String aiContextFile;
-
-    /**
-     * Dokumentacja DDD Refactoring w formacie Markdown.
-     * Zawiera sugestie dotyczące domeny i wzorców DDD.
-     */
-    private String dddRefactorings;
+    public void addDocument(String type, String content) {
+        this.documents.put(type, content);
+    }
 }

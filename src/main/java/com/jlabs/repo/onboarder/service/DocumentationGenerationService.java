@@ -58,10 +58,9 @@ public class DocumentationGenerationService {
         }
 
         log.info("Dokumentacja wygenerowana pomyślnie");
-        log.debug("AI Context File długość: {} znaków",
-                result.getAiContextFile() != null ? result.getAiContextFile().length() : 0);
-        log.debug("README długość: {} znaków",
-                result.getReadme() != null ? result.getReadme().length() : 0);
+        result.getDocuments().forEach((type, content) -> {
+            log.debug("{} długość: {} znaków", type, content != null ? content.length() : 0);
+        });
 
         return result;
     }

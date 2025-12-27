@@ -30,7 +30,7 @@ public class DddRefactoringGenerationService extends DocumentGenerationService {
     }
 
     @Override
-    protected void addToResult(DocumentationResult result, String content) {
-        result.setDddRefactorings(content);
+    protected String getDocumentType() {
+        return "DDD Refactoring";
     }
 }

@@ -30,7 +30,7 @@ public class ReadmeGenerationService extends DocumentGenerationService {
     }
 
     @Override
-    protected void addToResult(DocumentationResult result, String content) {
-        result.setReadme(content);
+    protected String getDocumentType() {
+        return "README.md";
     }
 }

@@ -59,7 +59,11 @@ public abstract class DocumentGenerationService {
 
     protected abstract String getOutputDebugFileName();
 
-    protected abstract void addToResult(DocumentationResult result, String content);
+    protected void addToResult(DocumentationResult result, String content) {
+        result.addDocument(getDocumentType(), content);
+    }
+
+    protected abstract String getDocumentType();
 
     // Hook for post-processing (default implementation does nothing)
     protected String postProcess(String content, GitReport report) {

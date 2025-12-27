@@ -79,12 +79,8 @@ public class GitCoreRunner {
             saveDocumentationResult(result, workDir);
 
             log.info("Dokumentacja wygenerowana pomyślnie");
-            log.debug("README długość: {} znaków",
-                    result.getReadme() != null ? result.getReadme().length() : 0);
-            log.debug("Refactorings długość: {} znaków",
-                    result.getRefactorings() != null ? result.getRefactorings().length() : 0);
-            log.debug("Context File długość: {} znaków",
-                    result.getAiContextFile() != null ? result.getAiContextFile().length() : 0);
+            result.getDocuments().forEach((type, content) -> log.debug("{} długość: {} znaków", type,
+                    content != null ? content.length() : 0));
 
             return result;
         }
@@ -107,22 +103,23 @@ public class GitCoreRunner {
     private void saveDocumentationResult(DocumentationResult result, Path outputDir) throws IOException {
         Files.createDirectories(outputDir);
 
-        // Zapisz README.md
-        if (result.getReadme() != null && !result.getReadme().isBlank()) {
-            Path readmeFile = outputDir.resolve("README.md");
-            Files.writeString(readmeFile, result.getReadme(), StandardCharsets.UTF_8);
-        }
+        for (var entry : result.getDocuments().entrySet()) {
+            String type = entry.getKey();
+            String content = entry.getValue();
 
-        // Zapisz REFACTORINGS.md
-        if (result.getRefactorings() != null && !result.getRefactorings().isBlank()) {
-            Path refactoringsFile = outputDir.resolve("REFACTORINGS.md");
-            Files.writeString(refactoringsFile, result.getRefactorings(), StandardCharsets.UTF_8);
+            if (content != null && !content.isBlank()) {
+                String filename = sanitizeFilename(type);
+                if (!filename.toLowerCase().endsWith(".md")) {
+                    filename += ".md";
+                }
+                Path filePath = outputDir.resolve(filename);
+                Files.writeString(filePath, content, StandardCharsets.UTF_8);
+                log.info("Zapisano: {}", filePath);
+            }
         }
+    }
 
-        // Zapisz AI_CONTEXT_FILE.md
-        if (result.getAiContextFile() != null && !result.getAiContextFile().isBlank()) {
-            Path contextFile = outputDir.resolve("AI_CONTEXT_FILE.md");
-            Files.writeString(contextFile, result.getAiContextFile(), StandardCharsets.UTF_8);
-        }
+    private String sanitizeFilename(String type) {
+        return type.toUpperCase().replace(" ", "_").replaceAll("[^A-Z0-9_\\.]", "");
     }
 }

@@ -170,19 +170,13 @@
         <div id="results" class="result-section">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
           <div class="tabs" style="margin-bottom: 0; border-bottom: none;">
-            <div class="tab active" onclick="switchTab('readme')">README.md</div>
-            <div class="tab" onclick="switchTab('refactorings')">Refactorings</div>
-            <div class="tab" onclick="switchTab('ddd')">DDD Refactoring</div>
-            <div class="tab" onclick="switchTab('context')">AI Context</div>
+            <!-- Tabs will be generated dynamically -->
           </div>
           <button id="copyBtn" onclick="copyActiveTabContent()" style="padding: 5px 15px; font-size: 14px;">Copy Markdown</button>
         </div>
         <div style="border-bottom: 1px solid #ddd; margin-bottom: 20px;"></div>
 
-        <div id="readme-content" class="tab-content active markdown-body"></div>
-        <div id="context-content" class="tab-content markdown-body"></div>
-        <div id="refactorings-content" class="tab-content markdown-body"></div>
-        <div id="ddd-content" class="tab-content markdown-body"></div>
+        <!-- Content divs will be generated dynamically -->
       </div>
     </div>
 
@@ -254,22 +248,63 @@
 
       function renderResults(data) {
         currentAnalysisData = data;
-        document.getElementById("results").style.display = "block";
+        const documents = data.documents || {};
+        const resultSection = document.getElementById("results");
+        resultSection.style.display = "block";
 
-        document.getElementById("readme-content").innerHTML = marked.parse(
-          data.readme || "*No README generated*"
-        );
-        document.getElementById("refactorings-content").innerHTML =
-          marked.parse(data.refactorings || "*No Refactorings generated*");
-        document.getElementById("context-content").innerHTML = marked.parse(
-          data.aiContextFile || "*No Context file generated*"
-        );
-        document.getElementById("ddd-content").innerHTML = marked.parse(
-          data.dddRefactorings || "*No DDD Refactorings generated*"
-        );
+        // Clear existing tabs and contents
+        const tabsContainer = document.querySelector(".tabs");
+        tabsContainer.innerHTML = '';
         
-        // Reset tab state if needed, or keep current
-        switchTab(activeTabId);
+        // Remove old dynamic content divs but keep the structure container
+        const oldContentDivs = document.querySelectorAll(".tab-content");
+        oldContentDivs.forEach(div => div.remove());
+
+        // Get keys (document types)
+        const docTypes = Object.keys(documents);
+        
+        if (docTypes.length === 0) {
+             tabsContainer.innerHTML = '<div class="tab">No documents generated</div>';
+             return;
+        }
+
+        // Create tabs and content divs
+        docTypes.forEach((type, index) => {
+            // Create tab
+            const tab = document.createElement("div");
+            tab.className = "tab";
+            tab.textContent = type;
+            tab.dataset.tabId = type;
+            tab.onclick = () => switchTab(type);
+            tabsContainer.appendChild(tab);
+
+            // Create content div
+            const contentDiv = document.createElement("div");
+            contentDiv.id = `content-${sanitizeId(type)}`;
+            contentDiv.className = "tab-content markdown-body";
+            contentDiv.innerHTML = marked.parse(documents[type] || "*Empty document*");
+            resultSection.appendChild(contentDiv);
+
+            // Set first tab as active by default or keep current if valid
+            if (index === 0 && !activeTabId) {
+                activeTabId = type;
+            }
+        });
+
+        // Set active tab logic
+        if (!documents[activeTabId] && docTypes.length > 0) {
+            activeTabId = docTypes[0];
+        } else if (!documents[activeTabId]) {
+            activeTabId = null;
+        }
+
+        if (activeTabId) {
+            switchTab(activeTabId);
+        }
+      }
+
+      function sanitizeId(str) {
+          return str.replace(/[^a-zA-Z0-9-_]/g, '-').toLowerCase();
       }
 
       function showError(msg) {
@@ -278,54 +313,33 @@
         el.style.display = "block";
       }
 
-      function switchTab(tabName) {
-        activeTabId = tabName;
-        // Update tab classes
-        document
-          .querySelectorAll(".tab")
-          .forEach((t) => t.classList.remove("active"));
+      function switchTab(tabId) {
+        activeTabId = tabId;
         
-        // Find the tab element that was clicked is hard because we pass name. 
-        // Let's select by onclick attribute content as a quick hack or just iterate.
-        const tabs = document.querySelectorAll(".tab");
-        if (tabName === 'readme') tabs[0].classList.add("active");
-        if (tabName === 'refactorings') tabs[1].classList.add("active");
-        if (tabName === 'ddd') tabs[2].classList.add("active");
-        if (tabName === 'context') tabs[3].classList.add("active");
+        // Update tab classes
+        document.querySelectorAll(".tab").forEach((t) => {
+            if (t.dataset.tabId === tabId) {
+                t.classList.add("active");
+            } else {
+                t.classList.remove("active");
+            }
+        });
 
         // Update content visibility
-        document
-          .querySelectorAll(".tab-content")
-          .forEach((c) => c.classList.remove("active"));
-
-        if (tabName === "readme") {
-          document.getElementById("readme-content").classList.add("active");
-        } else if (tabName === "refactorings") {
-          document
-            .getElementById("refactorings-content")
-            .classList.add("active");
-        } else if (tabName === "ddd") {
-            document.getElementById("ddd-content").classList.add("active");
-        } else {
-          document.getElementById("context-content").classList.add("active");
+        document.querySelectorAll(".tab-content").forEach((c) => {
+             c.classList.remove("active");
+        });
+        
+        const activeContent = document.getElementById(`content-${sanitizeId(tabId)}`);
+        if (activeContent) {
+            activeContent.classList.add("active");
         }
       }
 
       function copyActiveTabContent() {
-        if (!currentAnalysisData) return;
+        if (!currentAnalysisData || !currentAnalysisData.documents || !activeTabId) return;
 
-        let content = "";
-        if (activeTabId === "readme") {
-            content = currentAnalysisData.readme;
-        } else if (activeTabId === "refactorings") {
-            content = currentAnalysisData.refactorings;
-        } else if (activeTabId === "context") {
-            content = currentAnalysisData.aiContextFile;
-        } else if (activeTabId === "ddd") {
-            content = currentAnalysisData.dddRefactorings;
-        }
-
-        if (!content) content = "";
+        const content = currentAnalysisData.documents[activeTabId] || "";
 
         navigator.clipboard.writeText(content).then(() => {
             const btn = document.getElementById("copyBtn");

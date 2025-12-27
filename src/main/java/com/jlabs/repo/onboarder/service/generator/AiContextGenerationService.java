@@ -36,8 +36,8 @@ public class AiContextGenerationService extends DocumentGenerationService {
     }
 
     @Override
-    protected void addToResult(DocumentationResult result, String content) {
-        result.setAiContextFile(content);
+    protected String getDocumentType() {
+        return "AI Context";
     }
 
     @Override
