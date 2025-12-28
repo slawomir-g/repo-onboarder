@@ -74,12 +74,19 @@ public class PromptConstructionService {
                         GitReport report,
                         Path repoRoot,
                         String promptTemplatePath,
-                        String documentationTemplatePath) {
+                        String documentationTemplatePath,
+                        String targetLanguage) {
                 try {
 
                         String repositoryContextXml = prepareRepositoryContext(report, repoRoot);
 
                         String documentationTemplate = loadDocumentationTemplate(documentationTemplatePath);
+
+                        // Append language instruction
+                        if (targetLanguage != null && !targetLanguage.isBlank()) {
+                                documentationTemplate += "\n\nIMPORTANT: Please write the response in " + targetLanguage
+                                                + " language.";
+                        }
 
                         PromptTemplate finalPromptTemplate = PromptTemplate.builder()
                                         .renderer(StTemplateRenderer.builder()
@@ -152,12 +159,19 @@ public class PromptConstructionService {
         public String constructPromptWithCache(
                         String cachedContentName,
                         String promptTemplatePath,
-                        String documentationTemplatePath) {
+                        String documentationTemplatePath,
+                        String targetLanguage) {
                 try {
                         // Gdy używamy cached content, nie musimy dołączać repository context do promptu
                         // - jest już w cache jako system instruction. Tutaj budujemy tylko
                         // instrukcje dla AI co ma wygenerować.
                         String documentationTemplate = loadDocumentationTemplate(documentationTemplatePath);
+
+                        // Append language instruction
+                        if (targetLanguage != null && !targetLanguage.isBlank()) {
+                                documentationTemplate += "\n\nIMPORTANT: Please write the response in " + targetLanguage
+                                                + " language.";
+                        }
 
                         // Utwórz uproszczony prompt - cached content zawiera już repository context
                         PromptTemplate simplePromptTemplate = PromptTemplate.builder()

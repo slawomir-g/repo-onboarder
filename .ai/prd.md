@@ -48,6 +48,7 @@ Input Parameters (Query Parameters):
 - repoUrl (required): Valid Git repository URL (public repositories only)
 - branch (optional): Branch to analyze (default: based on configuration)
 - withTest (optional): Whether to include test files in analysis (boolean, default: false)
+- targetLanguage (optional): Target language for documentation (e.g., "English", "Polish") (default: "English")
 
 Response:
 

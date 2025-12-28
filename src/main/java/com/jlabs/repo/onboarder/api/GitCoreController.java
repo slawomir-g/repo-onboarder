@@ -9,7 +9,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -30,10 +29,11 @@ public class GitCoreController {
                         @Parameter(description = "URL repozytorium") @RequestParam(required = true, defaultValue = "${git-core.repo-url}") String repoUrl,
 
                         @Parameter(description = "Nazwa brancha") @RequestParam(required = true, defaultValue = "${git-core.branch}") String branch,
-                        @Parameter(description = "Nazwa brancha") @RequestParam(required = true, defaultValue = "${git-core.withTest}") boolean withTest) {
+                        @Parameter(description = "Nazwa brancha") @RequestParam(required = true, defaultValue = "${git-core.withTest}") boolean withTest,
+                        @Parameter(description = "Język docelowy") @RequestParam(required = false, defaultValue = "English") String targetLanguage) {
                 log.info("REST: uruchamiam analizę GitCore");
                 try {
-                        DocumentationResult result = runner.run(repoUrl, branch, withTest);
+                        DocumentationResult result = runner.run(repoUrl, branch, withTest, targetLanguage);
                         return ResponseEntity.ok(result);
                 } catch (Exception ex) {
                         log.error("Błąd podczas analizy GitCore", ex);

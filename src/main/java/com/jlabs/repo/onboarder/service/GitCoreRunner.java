@@ -2,7 +2,6 @@ package com.jlabs.repo.onboarder.service;
 
 import com.jlabs.repo.onboarder.config.GitCoreProperties;
 import com.jlabs.repo.onboarder.git.*;
-import com.jlabs.repo.onboarder.markdown.*;
 import com.jlabs.repo.onboarder.model.DocumentationResult;
 import com.jlabs.repo.onboarder.model.GitReport;
 import org.eclipse.jgit.api.Git;
@@ -45,7 +44,8 @@ public class GitCoreRunner {
      *         Context File
      * @throws Exception gdy wystąpi błąd podczas analizy lub generacji dokumentacji
      */
-    public DocumentationResult run(String repoUrl, String branch, boolean withTest) throws Exception {
+    public DocumentationResult run(String repoUrl, String branch, boolean withTest, String targetLanguage)
+            throws Exception {
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
         String temporaryDirName = timestamp + "_" + UUID.randomUUID();
 
@@ -74,7 +74,7 @@ public class GitCoreRunner {
             GitReport report = createGitReport(repoUrl, branch, withTest, git, workDir.toString());
 
             DocumentationResult result = documentationGenerationService.generateDocumentation(report, repoRoot,
-                    workDir);
+                    workDir, targetLanguage);
 
             saveDocumentationResult(result, workDir);
 

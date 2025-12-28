@@ -30,9 +30,10 @@ public abstract class DocumentGenerationService {
      * Template method to generate a document, save debug info, and add to result.
      */
     public void generate(DocumentationResult result, GitReport report, Path repoRoot, Path debugOutputDir,
-            String cacheName) {
+            String cacheName, String targetLanguage) {
         // 1. Construct prompt
-        String promptText = constructPrompt(cacheName, getPromptTemplatePath(), getDocTemplatePath(), report, repoRoot);
+        String promptText = constructPrompt(cacheName, getPromptTemplatePath(), getDocTemplatePath(), report, repoRoot,
+                targetLanguage);
 
         // 2. Save prompt to debug file
         saveDebugFile(debugOutputDir, createDebugPromptFilename(getPromptTemplatePath()), promptText);
@@ -73,13 +74,15 @@ public abstract class DocumentGenerationService {
     // Helper methods
 
     private String constructPrompt(String cacheName, String promptTemplatePath, String docTemplatePath,
-            GitReport report, Path repoRoot) {
+            GitReport report, Path repoRoot, String targetLanguage) {
         if (cacheName != null) {
             log.debug("Generowanie dokumentu z użyciem cache: {}", cacheName);
-            return promptConstructionService.constructPromptWithCache(cacheName, promptTemplatePath, docTemplatePath);
+            return promptConstructionService.constructPromptWithCache(cacheName, promptTemplatePath, docTemplatePath,
+                    targetLanguage);
         } else {
             log.debug("Generowanie dokumentu bez cache (pełny prompt)");
-            return promptConstructionService.constructPrompt(report, repoRoot, promptTemplatePath, docTemplatePath);
+            return promptConstructionService.constructPrompt(report, repoRoot, promptTemplatePath, docTemplatePath,
+                    targetLanguage);
         }
     }
 

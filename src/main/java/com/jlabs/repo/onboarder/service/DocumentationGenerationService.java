@@ -44,7 +44,8 @@ public class DocumentationGenerationService {
      * @param debugOutputDir katalog do zapisu plików debugowania
      * @return wynik generacji dokumentacji
      */
-    public DocumentationResult generateDocumentation(GitReport report, Path repoRoot, Path debugOutputDir) {
+    public DocumentationResult generateDocumentation(GitReport report, Path repoRoot, Path debugOutputDir,
+            String targetLanguage) {
         log.info("Rozpoczęcie generacji dokumentacji dla repo: {}", report.getRepo().getUrl());
 
         // 1. Zapewnij dostępność cache (jeden raz dla wszystkich dokumentów)
@@ -54,7 +55,7 @@ public class DocumentationGenerationService {
 
         // 2. Uruchom wszystkie generatory
         for (DocumentGenerationService generator : documentGenerators) {
-            generator.generate(result, report, repoRoot, debugOutputDir, repositoryContentCacheName);
+            generator.generate(result, report, repoRoot, debugOutputDir, repositoryContentCacheName, targetLanguage);
         }
 
         log.info("Dokumentacja wygenerowana pomyślnie");

@@ -158,6 +158,10 @@
           placeholder="Workdir (optional)"
           style="display: none"
         />
+        <select id="languageSelect" style="padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 16px;">
+            <option value="English">English</option>
+            <option value="Polish">Polish</option>
+        </select>
         <!-- Hidden for simplicity MVP -->
         <button id="analyzeBtn" onclick="runAnalysis()">
           Analyze Repository
@@ -187,6 +191,7 @@
       async function runAnalysis() {
         const repoUrl = document.getElementById("repoUrl").value.trim();
         const branch = document.getElementById("branch").value.trim();
+        const targetLanguage = document.getElementById("languageSelect").value;
         // Default workdir is handled by backend if param is missing, but here we let the backend defaults take over
         // by constructing params properly.
 
@@ -211,12 +216,14 @@
           const formData = new FormData();
           formData.append("repoUrl", repoUrl);
           if (branch) formData.append("branch", branch);
+          formData.append("targetLanguage", targetLanguage);
 
           // Note: workdir is defaulted on server, we don't send it unless needed.
           // Using URL encoding for params in POST request as controller uses @RequestParam
           const params = new URLSearchParams();
           params.append("repoUrl", repoUrl);
           if (branch) params.append("branch", branch);
+          params.append("targetLanguage", targetLanguage);
           // Default workdir in controller is usually a temp dir, let's rely on that default logic.
           // However, the controller might expect 'workdir' param to be present if required=true.
           // Looking at the controller code: @RequestParam(required=true, defaultValue="${...}")
