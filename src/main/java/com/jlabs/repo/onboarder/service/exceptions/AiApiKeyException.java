@@ -1,8 +1,8 @@
 package com.jlabs.repo.onboarder.service.exceptions;
 
 /**
- * Wyjątek rzucany gdy brakuje lub jest nieprawidłowy klucz API dla Google Gemini.
- * Zgodnie z PRD, powinien być rzucany przed rozpoczęciem przetwarzania repozytorium.
+ * Exception thrown when API key for Google Gemini is missing or invalid.
+ * According to PRD, it should be thrown before starting repository processing.
  */
 public class AiApiKeyException extends AiException {
 
@@ -14,4 +14,3 @@ public class AiApiKeyException extends AiException {
         super(message, cause);
     }
 }
-

@@ -7,9 +7,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 /**
- * Serwis odpowiedzialny za post-processing wygenerowanej dokumentacji.
- * Służy do wzbogacania dokumentów o sekcje generowane programowo,
- * których AI nie musi generować samodzielnie (np. pełna struktura plików).
+ * Service responsible for post-processing of generated documentation.
+ * Used to enrich documents with programmatically generated sections,
+ * which the AI does not have to generate itself (e.g. full file structure).
  */
 @Service
 @Slf4j
@@ -19,25 +19,25 @@ public class DocumentationPostProcessingService {
     private final DirectoryTreePayloadWriter directoryTreePayloadWriter;
 
     /**
-     * Wzbogaca AI Context File o sekcję Project Structure zawierającą pełne drzewo
-     * plików.
+     * Enriches AI Context File with Project Structure section containing full file
+     * tree.
      *
-     * @param aiContextFile wygenerowana treść markdown od AI
-     * @param report        raport Git zawierający listę plików
-     * @return wzbogacona treść markdown
+     * @param aiContextFile generated markdown content from AI
+     * @param report        Git report containing file list
+     * @return enriched markdown content
      */
     public String enhance(String aiContextFile, GitReport report) {
         if (aiContextFile == null) {
             return null;
         }
 
-        log.info("Rozpoczynam post-processing AI Context File - dodawanie Project Structure");
+        log.info("Starting AI Context File post-processing - adding Project Structure");
 
         String tree = directoryTreePayloadWriter.generate(report);
 
         StringBuilder sb = new StringBuilder(aiContextFile);
 
-        // Dodaj nową linię jeśli dokument nie kończy się nią
+        // Add new line if document does not end with one
         if (!aiContextFile.endsWith("\n")) {
             sb.append("\n");
         }
@@ -47,7 +47,7 @@ public class DocumentationPostProcessingService {
         sb.append(tree);
         sb.append("```\n");
 
-        log.debug("Sekcja Project Structure została dodana do dokumentu");
+        log.debug("Project Structure section added to document");
         return sb.toString();
     }
 }

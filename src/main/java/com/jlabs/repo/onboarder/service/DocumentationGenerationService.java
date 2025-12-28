@@ -24,106 +24,106 @@ public class DocumentationGenerationService {
     private final List<DocumentGenerationService> documentGenerators;
 
     /**
-     * Generuje dokumentację dla repozytorium używając AI modelu z wykorzystaniem
-     * cache.
+     * Generates documentation for the repository using the AI model with cache.
      * <p>
      * Flow:
-     * 1. Zapewnia dostępność cache z repository context (sprawdza/tworzy)
-     * 2. Uruchamia generatory dla poszczególnych dokumentów (AI Context, README,
-     * Refactoring, DDD)
-     * 3. Zwraca wynik
+     * 1. Ensures repository context cache availability (checks/creates)
+     * 2. Runs generators for individual documents (AI Context, README, Refactoring,
+     * DDD)
+     * 3. Returns the result
      * <p>
-     * Cache zawiera repository context XML (directory tree, hotspots, commits,
-     * source code)
-     * i jest identyfikowany przez URL repozytorium. Automatycznie wygasa po
-     * skonfigurowanym TTL.
-     * Reużycie cache dla wielu dokumentów oszczędza koszty i czas.
+     * The cache contains the repository context XML (directory tree, hotspots,
+     * commits,
+     * source code) and is identified by the repository URL. It automatically
+     * expires
+     * after the configured TTL.
+     * Reusing cache for multiple documents saves costs and time.
      *
-     * @param report         raport z analizy Git repozytorium
-     * @param repoRoot       ścieżka do katalogu głównego repozytorium
-     * @param debugOutputDir katalog do zapisu plików debugowania
-     * @return wynik generacji dokumentacji
+     * @param report         report from Git repository analysis
+     * @param repoRoot       path to the repository root directory
+     * @param debugOutputDir directory for saving debug files
+     * @return documentation generation result
      */
     public DocumentationResult generateDocumentation(GitReport report, Path repoRoot, Path debugOutputDir,
             String targetLanguage) {
-        log.info("Rozpoczęcie generacji dokumentacji dla repo: {}", report.getRepo().getUrl());
+        log.info("Starting documentation generation for repo: {}", report.getRepo().getUrl());
 
-        // 1. Zapewnij dostępność cache (jeden raz dla wszystkich dokumentów)
+        // 1. Ensure cache availability (once for all documents)
         String repositoryContentCacheName = ensureRepositoryContentCache(report, repoRoot, debugOutputDir);
 
         DocumentationResult result = new DocumentationResult();
 
-        // 2. Uruchom wszystkie generatory
+        // 2. Run all generators
         for (DocumentGenerationService generator : documentGenerators) {
             generator.generate(result, report, repoRoot, debugOutputDir, repositoryContentCacheName, targetLanguage);
         }
 
-        log.info("Dokumentacja wygenerowana pomyślnie");
+        log.info("Documentation generated successfully");
         result.getDocuments().forEach((type, content) -> {
-            log.debug("{} długość: {} znaków", type, content != null ? content.length() : 0);
+            log.debug("{} length: {} chars", type, content != null ? content.length() : 0);
         });
 
         return result;
     }
 
     /**
-     * Zapewnia dostępność cache z repository context.
-     * Sprawdza czy cache istnieje, jeśli nie - próbuje utworzyć.
+     * Ensures availability of cache with repository context.
+     * Checks if cache exists, if not - tries to create it.
      *
-     * @param report         raport Git
-     * @param repoRoot       ścieżka do repozytorium
-     * @param debugOutputDir katalog debugowania
-     * @return nazwa cache (pełna nazwa w formacie cachedContent/xxx) lub null jeśli
-     *         cache niedostępny
+     * @param report         Git report
+     * @param repoRoot       path to repository
+     * @param debugOutputDir debug directory
+     * @return cache name (full name in format cachedContent/xxx) or null if
+     *         cache unavailable
      */
     private String ensureRepositoryContentCache(GitReport report, Path repoRoot, Path debugOutputDir) {
         String repoUrl = report.getRepo().getUrl();
         String model = aiProperties.getChat().getOptions().getModel();
 
-        // 1. Sprawdź czy cache dla repozytorium już istnieje
+        // 1. Check if cache for repository already exists
         Optional<String> cachedContentName = repositoryCacheService.getCachedContentName(repoUrl);
 
         if (cachedContentName.isPresent()) {
-            // Cache istnieje - zwróć jego nazwę
-            log.info("Używanie istniejącego cache dla repo: {}", repoUrl);
+            // Cache exists - return its name
+            log.info("Using existing cache for repo: {}", repoUrl);
             return cachedContentName.get();
         }
 
-        // 2. Cache nie istnieje - spróbuj utworzyć nowy
-        log.info("Cache nie istnieje dla repo: {}, próba utworzenia nowego...", repoUrl);
+        // 2. Cache does not exist - try to create new one
+        log.info("Cache does not exist for repo: {}, attempting to create new one...", repoUrl);
 
-        // Przygotuj repository context XML
+        // Prepare repository context XML
         String repoContextXml = promptConstructionService.prepareRepositoryContext(report, repoRoot);
         saveDebugFile(debugOutputDir, "ai_context_prompt_debug.txt", repoContextXml);
 
-        // Spróbuj utworzyć cached content
+        // Try to create cached content
         String newCacheName = repositoryCacheService.createCachedContent(repoUrl, repoContextXml, model);
 
         if (newCacheName != null) {
-            log.info("Cache został utworzony pomyślnie");
+            log.info("Cache created successfully");
             return newCacheName;
         } else {
-            log.info("Cache nie jest dostępny, będzie używany tradycyjny prompt z pełnym kontekstem");
+            log.info("Cache is not available, traditional prompt with full context will be used");
             return null;
         }
     }
 
     /**
-     * Zapisuje zawartość do pliku w celach debugowania.
-     * Metoda nie przerywa głównego flow w przypadku błędów - tylko loguje
-     * ostrzeżenia.
+     * Saves content to file for debugging purposes.
+     * The method does not interrupt the main flow in case of errors - only logs
+     * warnings.
      *
-     * @param outputDir katalog docelowy
-     * @param filename  nazwa pliku do zapisania
-     * @param content   zawartość do zapisania
+     * @param outputDir target directory
+     * @param filename  name of file to save
+     * @param content   content to save
      */
     private void saveDebugFile(Path outputDir, String filename, String content) {
         try {
             Path debugFile = outputDir.resolve(filename);
             Files.writeString(debugFile, content, StandardCharsets.UTF_8);
-            log.debug("Zapisano plik debugowania: {}", debugFile);
+            log.debug("Saved debug file: {}", debugFile);
         } catch (Exception e) {
-            log.warn("Nie udało się zapisać pliku debugowania {}: {}", filename, e.getMessage());
+            log.warn("Failed to save debug file {}: {}", filename, e.getMessage());
         }
     }
 }

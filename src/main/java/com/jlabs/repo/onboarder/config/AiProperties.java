@@ -6,8 +6,8 @@ import lombok.Data;
 import java.time.Duration;
 
 /**
- * Konfiguracja właściwości dla integracji z Spring AI i Google Gemini API.
- * Właściwości są ładowane z application.yml z prefiksem
+ * Configuration properties for Spring AI and Google Gemini API integration.
+ * Properties are loaded from application.yml with prefix
  * "spring.ai.google.genai".
  */
 @ConfigurationProperties(prefix = "spring.ai.google.genai")
@@ -15,52 +15,52 @@ import java.time.Duration;
 public class AiProperties {
 
     /**
-     * Klucz API dla Google Gemini API.
-     * Wymagany do autoryzacji wywołań API.
+     * API key for Google Gemini API.
+     * Required for API authorization.
      */
     private String apiKey;
 
     /**
-     * Konfiguracja opcji chat modelu.
+     * Chat model option configuration.
      */
     private Chat chat = new Chat();
 
     /**
-     * Konfiguracja strategii retry dla wywołań API.
+     * Retry strategy configuration for API calls.
      */
     private Retry retry = new Retry();
 
     /**
-     * Konfiguracja opcji chat modelu Gemini.
+     * Gemini chat model option configuration.
      */
     @Data
     public static class Chat {
         /**
-         * Opcje chat modelu.
+         * Chat model options.
          */
         private Options options = new Options();
 
         /**
-         * Szczegółowe opcje chat modelu.
+         * Detailed chat model options.
          */
         @Data
         public static class Options {
             /**
-             * Nazwa modelu Gemini do użycia (np. "gemini-1.5-pro", "gemini-2.0-flash").
-             * Domyślnie: "gemini-1.5-pro"
+             * Gemini model name to use (e.g., "gemini-1.5-pro", "gemini-2.0-flash").
+             * Default: "gemini-1.5-pro"
              */
             private String model = "gemini-1.5-pro";
 
             /**
-             * Temperatura odpowiedzi (0.0-1.0).
-             * Wyższe wartości dają bardziej kreatywne odpowiedzi.
-             * Domyślnie: 0.7
+             * Response temperature (0.0-1.0).
+             * Higher values produce more creative responses.
+             * Default: 0.7
              */
             private double temperature = 0.7;
 
             /**
-             * Maksymalna liczba tokenów w odpowiedzi.
-             * Domyślnie: 8192
+             * Maximum number of output tokens.
+             * Default: 8192
              */
             private Integer maxOutputTokens = 8192;
 
@@ -69,32 +69,32 @@ public class AiProperties {
     }
 
     /**
-     * Konfiguracja strategii retry z exponential backoff.
+     * Retry strategy configuration with exponential backoff.
      */
     @Data
     public static class Retry {
         /**
-         * Maksymalna liczba prób retry.
-         * Domyślnie: 3
+         * Maximum number of retry attempts.
+         * Default: 3
          */
         private int maxAttempts = 3;
 
         /**
-         * Początkowe opóźnienie w milisekundach przed pierwszą próbą retry.
-         * Domyślnie: 1000ms (1 sekunda)
+         * Initial delay in milliseconds before the first retry attempt.
+         * Default: 1000ms (1 second)
          */
         private long initialDelayMs = 1000;
 
         /**
-         * Mnożnik dla exponential backoff.
-         * Opóźnienie = initialDelayMs * (multiplier ^ attemptNumber)
-         * Domyślnie: 2.0
+         * Multiplier for exponential backoff.
+         * Delay = initialDelayMs * (multiplier ^ attemptNumber)
+         * Default: 2.0
          */
         private double multiplier = 2.0;
 
         /**
-         * Maksymalne opóźnienie w milisekundach.
-         * Domyślnie: 30000ms (30 sekund)
+         * Maximum delay in milliseconds.
+         * Default: 30000ms (30 seconds)
          */
         private long maxDelayMs = 30000;
     }

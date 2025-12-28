@@ -29,7 +29,7 @@ public class ChatModelClient {
     @Retryable(maxAttemptsExpression = "#{@aiProperties.retry.maxAttempts}", noRetryFor = { AiRateLimitException.class,
             AiApiKeyException.class }, backoff = @Backoff(delayExpression = "#{@aiProperties.retry.initialDelayMs}", multiplierExpression = "#{@aiProperties.retry.multiplier}", maxDelayExpression = "#{@aiProperties.retry.maxDelayMs}"))
     public String call(String promptText, GoogleGenAiChatOptions options) {
-        log.debug("Wywołanie API Gemini" + (options != null ? " z opcjami" : ""));
+        log.debug("Calling Gemini API" + (options != null ? " with options" : ""));
 
         try {
 
@@ -44,39 +44,40 @@ public class ChatModelClient {
             return response.getResult().getOutput().getText();
 
         } catch (Exception e) {
-            log.warn("Błąd podczas wywołania API: {}", e.getMessage());
+            log.warn("Error during API call: {}", e.getMessage());
 
-            // Sprawdź czy to rate limit error (429) lub authentication error (401)
-            // Te błędy nie powinny być retryowane - rzucamy odpowiednie wyjątki
+            // Check if it is rate limit error (429) or authentication error (401)
+            // These errors should not be retried - throwing appropriate exceptions
             if (isRateLimitError(e)) {
                 throw new AiRateLimitException(
-                        "Wystąpił rate limiting z API Google Gemini: " + e.getMessage(), e);
+                        "Rate limiting occurred from Google Gemini API: " + e.getMessage(), e);
             }
             if (isAuthenticationError(e)) {
                 throw new AiApiKeyException(
-                        "Błąd autoryzacji z API Google Gemini. Sprawdź poprawność API key: " + e.getMessage(), e);
+                        "Authentication error from Google Gemini API. Check API key correctness: " + e.getMessage(), e);
             }
 
-            // Inne błędy będą retryowane przez Spring Retry
-            throw new AiException("Błąd podczas wywołania API: " + e.getMessage(), e);
+            // Other errors will be retried by Spring Retry
+            throw new AiException("Error during API call: " + e.getMessage(), e);
         }
     }
 
     /**
-     * Metoda recover wywoływana po wyczerpaniu wszystkich prób retry.
+     * Recover method called after exhausting all retry attempts.
      * 
-     * @param e          ostatni wyjątek który wystąpił
-     * @param promptText tekst promptu który był wywoływany
-     * @param options    opcje wywołania API (może być null)
-     * @throws AiException zawsze rzuca wyjątek z informacją o nieudanych próbach
+     * @param e          last exception that occurred
+     * @param promptText prompt text that was called
+     * @param options    API call options (can be null)
+     * @throws AiException always throws exception with information about failed
+     *                     attempts
      */
     @Recover
     public String recover(AiException e, String promptText, GoogleGenAiChatOptions options) {
         AiProperties.Retry retryConfig = aiProperties.getRetry();
         int maxAttempts = retryConfig.getMaxAttempts();
-        log.error("Nie udało się wywołać API po {} próbach", maxAttempts, e);
+        log.error("Failed to call API after {} attempts", maxAttempts, e);
         throw new AiException(
-                String.format("Nie udało się wywołać API po %d próbach", maxAttempts),
+                String.format("Failed to call API after %d attempts", maxAttempts),
                 e);
     }
 
@@ -85,33 +86,32 @@ public class ChatModelClient {
         int promptLength = promptText.length();
         double promptSizeKB = promptLength / 1024.0;
 
-        log.info("Przygotowanie do wysłania promptu: {} znaków ({} KB), szacowana liczba tokenów: ~{}",
+        log.info("Preparing to send prompt: {} chars ({} KB), estimated tokens: ~{}",
                 promptLength, String.format("%.2f", promptSizeKB), estimatedTokens);
 
         return estimatedTokens;
     }
 
     /**
-     * Szacuje liczbę tokenów w tekście promptu.
-     * Dla modeli Gemini używa przybliżenia: 1 token ≈ 3.5 znaków.
-     * To jest konserwatywne szacowanie - rzeczywista liczba tokenów może być nieco
-     * niższa.
+     * Estimates the number of tokens in the prompt text.
+     * For Gemini models, uses approximation: 1 token ≈ 3.5 characters.
+     * This is a conservative estimate - actual token count might be slightly lower.
      * 
-     * Uwaga: To jest przybliżenie. Rzeczywista liczba tokenów zależy od:
-     * - Języka tekstu (polski może mieć więcej tokenów niż angielski)
-     * - Specyfiki tokenizera modelu Gemini
-     * - Obecności znaków specjalnych, liczb, kodów itp.
+     * Note: This is an approximation. Actual token count depends on:
+     * - Text language (Polish might have more tokens than English)
+     * - Specifics of Gemini model tokenizer
+     * - Presence of special characters, numbers, codes etc.
      * 
-     * @param text tekst do oszacowania
-     * @return szacowana liczba tokenów
+     * @param text text to estimate
+     * @return estimated token count
      */
     private long estimateTokenCount(String text) {
         if (text == null || text.isEmpty()) {
             return 0;
         }
 
-        // Dla Gemini: konserwatywne szacowanie 1 token = 3.5 znaki
-        // Rzeczywista wartość może być różna, ale to daje bezpieczne oszacowanie
+        // For Gemini: conservative estimate 1 token = 3.5 characters
+        // Actual value may vary, but this gives a safe estimate
         return Math.round(text.length() / 3.5);
     }
 
@@ -119,7 +119,7 @@ public class ChatModelClient {
         try {
             Usage usage = response.getMetadata().getUsage();
             if (usage == null) {
-                log.debug("Brak informacji o użyciu tokenów w metadata odpowiedzi");
+                log.debug("No token usage info in response metadata");
                 return;
             }
 
@@ -131,12 +131,12 @@ public class ChatModelClient {
 
                 log.info("Total tokens: {}", totalTokens);
                 log.info("Cached tokens: {}", cachedTokens);
-                log.info("Płatne tokeny: {}", paidTokens);
+                log.info("Paid tokens: {}", paidTokens);
             } else {
-                log.info("Nie udało się odczytać informacji o tokenach z metadata");
+                log.info("Failed to read token info from metadata");
             }
         } catch (Exception e) {
-            log.debug("Nie udało się odczytać informacji o tokenach z metadata: {}", e.getMessage());
+            log.debug("Failed to read token info from metadata: {}", e.getMessage());
         }
     }
 

@@ -37,12 +37,12 @@ public class GitCoreRunner {
     private final TestDirectoryCleaner testDirectoryCleaner;
 
     /**
-     * Wykonuje pełną analizę repozytorium Git i generuje dokumentację przy użyciu
-     * AI.
+     * Performs full Git repository analysis and generates documentation using AI.
      *
-     * @return wynik generacji dokumentacji zawierający README, Architecture i
+     * @return documentation generation result containing README, Architecture and
      *         Context File
-     * @throws Exception gdy wystąpi błąd podczas analizy lub generacji dokumentacji
+     * @throws Exception when error occurs during analysis or documentation
+     *                   generation
      */
     public DocumentationResult run(String repoUrl, String branch, boolean withTest, String targetLanguage)
             throws Exception {
@@ -78,8 +78,8 @@ public class GitCoreRunner {
 
             saveDocumentationResult(result, workDir);
 
-            log.info("Dokumentacja wygenerowana pomyślnie");
-            result.getDocuments().forEach((type, content) -> log.debug("{} długość: {} znaków", type,
+            log.info("Documentation generated successfully");
+            result.getDocuments().forEach((type, content) -> log.debug("{} length: {} chars", type,
                     content != null ? content.length() : 0));
 
             return result;
@@ -114,7 +114,7 @@ public class GitCoreRunner {
                 }
                 Path filePath = outputDir.resolve(filename);
                 Files.writeString(filePath, content, StandardCharsets.UTF_8);
-                log.info("Zapisano: {}", filePath);
+                log.info("Saved: {}", filePath);
             }
         }
     }

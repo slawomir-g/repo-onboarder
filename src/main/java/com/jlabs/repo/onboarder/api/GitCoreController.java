@@ -16,27 +16,27 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/git-core")
-@Tag(name = "Git Core", description = "Analiza repozytorium Git")
+@Tag(name = "Git Core", description = "Git Repository Analysis")
 @Slf4j
 @RequiredArgsConstructor
 public class GitCoreController {
 
         private final GitCoreRunner runner;
 
-        @Operation(summary = "Uruchamia analizę repozytorium", description = "Klonuje repozytorium i generuje dokumentację")
+        @Operation(summary = "Starts repository analysis", description = "Clones repository and generates documentation")
         @PostMapping("/run")
         public ResponseEntity<?> runAnalysis(
-                        @Parameter(description = "URL repozytorium") @RequestParam(required = true, defaultValue = "${git-core.repo-url}") String repoUrl,
+                        @Parameter(description = "Repository URL") @RequestParam(required = true, defaultValue = "${git-core.repo-url}") String repoUrl,
 
-                        @Parameter(description = "Nazwa brancha") @RequestParam(required = true, defaultValue = "${git-core.branch}") String branch,
-                        @Parameter(description = "Nazwa brancha") @RequestParam(required = true, defaultValue = "${git-core.withTest}") boolean withTest,
-                        @Parameter(description = "Język docelowy") @RequestParam(required = false, defaultValue = "English") String targetLanguage) {
-                log.info("REST: uruchamiam analizę GitCore");
+                        @Parameter(description = "Branch name") @RequestParam(required = true, defaultValue = "${git-core.branch}") String branch,
+                        @Parameter(description = "Include tests") @RequestParam(required = true, defaultValue = "${git-core.withTest}") boolean withTest,
+                        @Parameter(description = "Target language") @RequestParam(required = false, defaultValue = "English") String targetLanguage) {
+                log.info("REST: starting GitCore analysis");
                 try {
                         DocumentationResult result = runner.run(repoUrl, branch, withTest, targetLanguage);
                         return ResponseEntity.ok(result);
                 } catch (Exception ex) {
-                        log.error("Błąd podczas analizy GitCore", ex);
+                        log.error("Error during GitCore analysis", ex);
 
                         return ResponseEntity
                                         .status(HttpStatus.INTERNAL_SERVER_ERROR)

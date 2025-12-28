@@ -1,8 +1,8 @@
 package com.jlabs.repo.onboarder.service.exceptions;
 
 /**
- * Wyjątek rzucany gdy wystąpi rate limiting z API Google Gemini.
- * Powinien być obsługiwany przez retry logic z exponential backoff.
+ * Exception thrown when rate limiting occurs from Google Gemini API.
+ * Should be handled by retry logic with exponential backoff.
  */
 public class AiRateLimitException extends AiException {
 
@@ -14,4 +14,3 @@ public class AiRateLimitException extends AiException {
         super(message, cause);
     }
 }
-

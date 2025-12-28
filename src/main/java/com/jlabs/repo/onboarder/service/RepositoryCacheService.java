@@ -17,21 +17,18 @@ import java.util.Optional;
 import javax.annotation.PostConstruct;
 
 /**
- * Serwis odpowiedzialny za zarządzanie cache'owanym kontekstem repozytoriów w
- * Google GenAI.
+ * Service responsible for managing cached repository context in Google GenAI.
  * 
- * Wykorzystuje Google GenAI Cached Content API do przechowywania dużych
- * kontekstów
- * repozytoriów (XML z directory tree, hotspots, commits, source code), co:
- * - Redukuje koszty API (cached tokens są 10x tańsze niż input tokens)
- * - Przyspiesza wywołania API (nie trzeba przesyłać dużego kontekstu za każdym
- * razem)
- * - Zachowuje semantykę (cache jest traktowany jak system instruction/context)
+ * Uses Google GenAI Cached Content API to store large repository contexts
+ * (XML with directory tree, hotspots, commits, source code), which:
+ * - Reduces API costs (cached tokens are 10x cheaper than input tokens)
+ * - Speeds up API calls (no need to send large context every time)
+ * - Preserves semantics (cache is treated as system instruction/context)
  * 
- * Cache jest identyfikowany przez URL repozytorium i automatycznie wygasa po
- * skonfigurowanym TTL.
+ * Cache is identified by repository URL and automatically expires after
+ * configured TTL.
  * 
- * UWAGA: Wymaga włączenia cached content w konfiguracji:
+ * NOTE: Requires cached content enabled in configuration:
  * spring.ai.google.genai.chat.enable-cached-content=true
  */
 @Service
@@ -59,50 +56,50 @@ public class RepositoryCacheService {
     @PostConstruct
     public void init() {
         if (!isCacheEnabled()) {
-            log.warn("GoogleGenAiCachedContentService nie jest dostępny - cache będzie wyłączony. " +
-                    "Aby włączyć cache, ustaw: spring.ai.google.genai.chat.enable-cached-content=true");
+            log.warn("GoogleGenAiCachedContentService is not available - cache will be disabled. " +
+                    "To enable cache, set: spring.ai.google.genai.chat.enable-cached-content=true");
         } else {
-            log.info("RepositoryCacheService został zainicjalizowany z włączonym cache");
+            log.info("RepositoryCacheService initialized with cache enabled");
         }
     }
 
     /**
-     * Generuje nazwę cache dla repozytorium na podstawie jego URL.
-     * Format: github-user-repo (po sanityzacji URL).
+     * Generates cache name for repository based on its URL.
+     * Format: github-user-repo (after URL sanitization).
      * 
-     * @param repoUrl URL repozytorium Git
-     * @return sanityzowana nazwa cache
+     * @param repoUrl Git repository URL
+     * @return sanitized cache name
      */
     public String getCacheNameForRepository(String repoUrl) {
         if (repoUrl == null || repoUrl.isBlank()) {
             return "unknown-repo";
         }
 
-        // Usuń protokół (https://, git@)
+        // Remove protocol (https://, git@)
         String sanitized = repoUrl.replaceAll("^(https?://|git@)", "");
 
-        // Usuń .git na końcu
+        // Remove .git at the end
         sanitized = sanitized.replaceAll("\\.git$", "");
 
-        // Zamień znaki specjalne na myślniki
+        // Replace special characters with hyphens
         sanitized = sanitized.replaceAll("[^a-zA-Z0-9]+", "-");
 
-        // Usuń myślniki na początku i końcu
+        // Remove hyphens at start and end
         sanitized = sanitized.replaceAll("^-+|-+$", "");
 
-        // Konwertuj na małe litery
+        // Convert to lowercase
         sanitized = sanitized.toLowerCase();
 
-        log.debug("Cache name dla repo URL '{}': '{}'", repoUrl, sanitized);
+        log.debug("Cache name for repo URL '{}': '{}'", repoUrl, sanitized);
         return sanitized;
     }
 
     /**
-     * Sprawdza czy cache dla repozytorium już istnieje i jest aktywny (nie wygasł).
+     * Checks if cache for repository already exists and is active (not expired).
      * 
-     * @param repoUrl URL repozytorium Git
-     * @return Optional z nazwą cached content jeśli istnieje i jest aktywny, Empty
-     *         jeśli nie istnieje lub wygasł
+     * @param repoUrl Git repository URL
+     * @return Optional with cached content name if exists and active, Empty if not
+     *         exists or expired
      */
     public Optional<String> getCachedContentName(String repoUrl) {
         if (!isCacheEnabled()) {
@@ -112,80 +109,79 @@ public class RepositoryCacheService {
         String cacheName = getCacheNameForRepository(repoUrl);
 
         try {
-            // Przeszukaj wszystkie cache'e szukając naszego
+            // Search all caches looking for ours
             List<GoogleGenAiCachedContent> allCaches = cachedContentService.listAll();
 
             for (GoogleGenAiCachedContent cache : allCaches) {
-                // Sprawdź czy display name pasuje do naszej nazwy
+                // Check if display name matches our name
                 if (cache.getDisplayName() != null && cache.getDisplayName().contains(cacheName)) {
-                    // Sprawdź czy cache nie wygasł
+                    // Check if cache didn't expire
                     if (!cache.isExpired()) {
                         String fullCacheName = cache.getName();
                         Duration remainingTtl = cache.getRemainingTtl();
 
-                        log.info("Znaleziono aktywny cache dla repo '{}': '{}', pozostały TTL: {} minut",
+                        log.info("Found active cache for repo '{}': '{}', remaining TTL: {} minutes",
                                 repoUrl, fullCacheName, remainingTtl.toMinutes());
 
                         return Optional.of(fullCacheName);
                     } else {
-                        log.info("Cache dla repo '{}' wygasł, zostanie usunięty i utworzony ponownie", repoUrl);
-                        // Usuń wygasły cache
+                        log.info("Cache for repo '{}' expired, will be deleted and recreated", repoUrl);
+                        // Delete expired cache
                         cachedContentService.delete(cache.getName());
                     }
                 }
             }
 
-            log.info("Nie znaleziono aktywnego cache dla repo '{}'", repoUrl);
+            log.info("Active cache not found for repo '{}'", repoUrl);
             return Optional.empty();
 
         } catch (Exception e) {
-            log.warn("Błąd podczas sprawdzania cache dla repo '{}': {}", repoUrl, e.getMessage());
+            log.warn("Error while checking cache for repo '{}': {}", repoUrl, e.getMessage());
             return Optional.empty();
         }
     }
 
     /**
-     * Tworzy nowy cached content dla repozytorium zawierający repository context
-     * XML.
+     * Creates new cached content for repository containing repository context XML.
      * 
-     * Cache będzie zawierał:
+     * Cache will contain:
      * - System instruction: Repository context XML (directory tree, hotspots,
      * commits, source code)
-     * - Display name: Nazwa repozytorium + timestamp
-     * - TTL: Skonfigurowany TTL (domyślnie 1 godzina)
-     * - Model: Ten sam model co używany do generacji
+     * - Display name: Repository name + timestamp
+     * - TTL: Configured TTL (default 1 hour)
+     * - Model: Same model as used for generation
      * 
-     * @param repoUrl              URL repozytorium Git
-     * @param repositoryContextXml XML zawierający pełny kontekst repozytorium
-     * @param model                nazwa modelu Google GenAI (np. "gemini-2.5-pro")
-     * @return pełna nazwa utworzonego cached content (format: cachedContent/xxx),
-     *         lub null jeśli cache jest wyłączony
-     * @throws RuntimeException gdy nie można utworzyć cache
+     * @param repoUrl              Git repository URL
+     * @param repositoryContextXml XML containing full repository context
+     * @param model                Google GenAI model name (e.g. "gemini-2.5-pro")
+     * @return full name of created cached content (format: cachedContent/xxx),
+     *         or null if cache is disabled
+     * @throws RuntimeException when cannot create cache
      */
     public String createCachedContent(String repoUrl, String repositoryContextXml, String model) {
         if (!isCacheEnabled()) {
-            log.warn("Cache jest wyłączony - nie można utworzyć cached content");
+            log.warn("Cache is disabled - cannot create cached content");
             return null;
         }
 
         String cacheName = getCacheNameForRepository(repoUrl);
 
         try {
-            log.info("Tworzenie nowego cache dla repo '{}' (display name: '{}')", repoUrl, cacheName);
+            log.info("Creating new cache for repo '{}' (display name: '{}')", repoUrl, cacheName);
 
-            // Oszacuj liczbę tokenów
+            // Estimate token count
             long estimatedTokens = estimateTokenCount(repositoryContextXml);
-            log.info("Szacowana liczba tokenów w cache: ~{}", estimatedTokens);
+            log.info("Estimated tokens in cache: ~{}", estimatedTokens);
 
             if (estimatedTokens < 32768) {
                 log.warn(
-                        "Ostrzeżenie: Szacowana liczba tokenów ({}) jest poniżej minimum 32,768 wymaganego przez Google GenAI Cached Content API. "
+                        "Warning: Estimated token count ({}) is below minimum 32,768 required by Google GenAI Cached Content API. "
                                 +
-                                "Cache może nie zostać utworzony.",
+                                "Cache might not be created.",
                         estimatedTokens);
             }
 
-            // Utwórz request do cached content
+            // Create cached content request
             CachedContentRequest request = CachedContentRequest.builder()
                     .model(model)
                     .contents(List.of(
@@ -197,24 +193,24 @@ public class RepositoryCacheService {
                     .ttl(aiProperties.getChat().getOptions().getRepositoryCacheTtl())
                     .build();
 
-            // Utwórz cached content
+            // Create cached content
             GoogleGenAiCachedContent cachedContent = cachedContentService.create(request);
             String fullCacheName = cachedContent.getName();
 
-            // Loguj informacje o utworzonym cache
+            // Log info about created cache
             logCacheCreated(cachedContent, repoUrl);
 
             return fullCacheName;
 
         } catch (Exception e) {
-            log.error("Nie udało się utworzyć cache dla repo '{}': {}", repoUrl, e.getMessage(), e);
-            throw new RuntimeException("Nie udało się utworzyć cached content: " + e.getMessage(), e);
+            log.error("Failed to create cache for repo '{}': {}", repoUrl, e.getMessage(), e);
+            throw new RuntimeException("Failed to create cached content: " + e.getMessage(), e);
         }
     }
 
     /**
-     * Szacuje liczbę tokenów w tekście.
-     * Dla modeli Gemini używa przybliżenia: 1 token ≈ 3.5 znaków.
+     * Estimates number of tokens in text.
+     * For Gemini models uses approximation: 1 token ≈ 3.5 characters.
      */
     private long estimateTokenCount(String text) {
         if (text == null || text.isEmpty()) {
@@ -224,18 +220,18 @@ public class RepositoryCacheService {
     }
 
     /**
-     * Loguje szczegółowe informacje o utworzonym cache.
+     * Logs detailed information about created cache.
      */
     private void logCacheCreated(GoogleGenAiCachedContent cachedContent, String repoUrl) {
-        log.info("Utworzono cache dla repo '{}': '{}'", repoUrl, cachedContent.getName());
+        log.info("Created cache for repo '{}': '{}'", repoUrl, cachedContent.getName());
         log.info("  Display name: {}", cachedContent.getDisplayName());
         log.info("  Model: {}", cachedContent.getModel());
-        log.info("  TTL: {} minut", cachedContent.getRemainingTtl().toMinutes());
+        log.info("  TTL: {} minutes", cachedContent.getRemainingTtl().toMinutes());
 
-        // Loguj usage metadata jeśli dostępne
+        // Log usage metadata if available
         if (cachedContent.getUsageMetadata() != null) {
             var metadata = cachedContent.getUsageMetadata();
-            metadata.totalTokenCount().ifPresent(tokens -> log.info("  Total tokens w cache: {}", tokens));
+            metadata.totalTokenCount().ifPresent(tokens -> log.info("  Total tokens in cache: {}", tokens));
         }
     }
 }

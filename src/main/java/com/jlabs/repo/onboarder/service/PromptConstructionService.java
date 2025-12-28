@@ -16,12 +16,12 @@ import java.time.format.DateTimeFormatter;
 import java.util.Map;
 
 /**
- * Serwis odpowiedzialny za konstrukcję promptu dla AI modelu.
- * Łączy wygenerowane payloady z template'ami XML i Markdown,
- * tworząc finalny prompt gotowy do wysłania do Gemini API.
+ * Service responsible for constructing the prompt for the AI model.
+ * Joins generated payloads with XML and Markdown templates,
+ * creating a final prompt ready to be sent to the Gemini API.
  * <p>
- * Zgodnie z planem optymalizacji, używa bezpośrednio metod generate()
- * z klas PayloadWriter zamiast czytać z plików.
+ * According to the optimization plan, it uses generate() methods directly
+ * from PayloadWriter classes instead of reading from files.
  */
 @Service
 @RequiredArgsConstructor
@@ -31,13 +31,12 @@ public class PromptConstructionService {
         private static final String REPOSITORY_CONTEXT_TEMPLATE_PATH = "prompts/repository-context-payload-template.xml";
 
         /**
-         * Nazwa placeholdera w prompt template, pod którym wstrzykujemy
-         * instrukcje/strukturę dokumentu
-         * (np. szablon dla AI Context File albo szablon README).
+         * The name of the placeholder in the prompt template where we inject
+         * the document instructions/structure
+         * (e.g. template for AI Context File or README template).
          * <p>
-         * Uwaga: używamy jednego, generycznego klucza, żeby PromptConstructionService
-         * był niezależny
-         * od typu dokumentu.
+         * Note: we use a single, generic key so that PromptConstructionService
+         * is independent of the document type.
          */
         private static final String DOCUMENTATION_TEMPLATE_PLACEHOLDER_KEY = "DOCUMENTATION_TEMPLATE";
 
@@ -50,25 +49,27 @@ public class PromptConstructionService {
         private final SourceCodeCorpusPayloadWriter sourceCodeCorpusPayloadWriter;
 
         /**
-         * Konstruuje finalny prompt dla AI modelu, pozwalając wskazać template promptu
-         * oraz template dokumentacji.
+         * Constructs the final prompt for the AI model, allowing specification of the
+         * prompt template
+         * and documentation template.
          * <p>
-         * Wyjaśnienie (po co to jest):
-         * - W projekcie generujemy więcej niż jeden typ dokumentu (np. AI Context File
-         * oraz README),
-         * ale oba wymagają tego samego "repository context" oraz innego zestawu
-         * instrukcji/sekcji.
-         * - Parametryzacja ścieżek pozwala reużywać tę samą logikę konstrukcji promptu
-         * dla różnych dokumentów,
-         * bez duplikowania kodu.
+         * Explanation (why this exists):
+         * - In the project we generate more than one type of document (e.g. AI Context
+         * File
+         * and README),
+         * but both require the same "repository context" and a different set of
+         * instructions/sections.
+         * - Parameterization of paths allows reusing the same prompt construction logic
+         * for different documents,
+         * without duplicating code.
          *
-         * @param report                    raport z analizy Git repozytorium
-         * @param repoRoot                  ścieżka do katalogu głównego repozytorium
-         * @param promptTemplatePath        ścieżka w classpath do zewnętrznego prompt
+         * @param report                    report from Git repository analysis
+         * @param repoRoot                  path to the repository root directory
+         * @param promptTemplatePath        classpath path to external prompt
          *                                  template (Markdown)
-         * @param documentationTemplatePath ścieżka w classpath do template
-         *                                  instrukcji/struktury dokumentu (Markdown)
-         * @return finalny prompt jako String gotowy do wysłania do API
+         * @param documentationTemplatePath classpath path to template of
+         *                                  document instructions/structure (Markdown)
+         * @return final prompt as String ready to be sent to API
          */
         public String constructPrompt(
                         GitReport report,
@@ -103,7 +104,7 @@ public class PromptConstructionService {
                         return finalPrompt;
                 } catch (Exception e) {
                         throw new PromptConstructionException(
-                                        "Błąd podczas konstrukcji promptu: " + e.getMessage(), e);
+                                        "Error during prompt construction: " + e.getMessage(), e);
                 }
         }
 
@@ -136,24 +137,25 @@ public class PromptConstructionService {
         }
 
         /**
-         * Konstruuje prompt dla AI modelu wykorzystując cached content, pozwalając
-         * wskazać template'y.
+         * Constructs the prompt for the AI model using cached content, allowing
+         * specification of templates.
          * <p>
-         * Wyjaśnienie:
-         * - Cached content zawiera już repository context XML jako system instruction,
-         * więc w prompt template
-         * wstrzykujemy jedynie "cacheInfo" jako placeholder dla kontekstu oraz template
-         * instrukcji dokumentu.
-         * - Parametryzacja ścieżek umożliwia generowanie różnych dokumentów (AI Context
-         * / README) w oparciu
-         * o ten sam cache.
+         * Explanation:
+         * - Cached content already contains repository context XML as system
+         * instruction,
+         * so in the prompt template
+         * we inject only "cacheInfo" as a placeholder for context and the document
+         * instruction template.
+         * - Parameterization of paths allows generating different documents (AI Context
+         * / README) based on
+         * this same cache.
          *
-         * @param cachedContentName         nazwa cached content do użycia
-         * @param promptTemplatePath        ścieżka w classpath do zewnętrznego prompt
+         * @param cachedContentName         name of cached content to use
+         * @param promptTemplatePath        classpath path to external prompt
          *                                  template (Markdown)
-         * @param documentationTemplatePath ścieżka w classpath do template
-         *                                  instrukcji/struktury dokumentu (Markdown)
-         * @return prompt jako String (instrukcje + template dokumentu, bez pełnego
+         * @param documentationTemplatePath classpath path to template of
+         *                                  document instructions/structure (Markdown)
+         * @return prompt as String (instructions + document template, without full
          *         repository context)
          */
         public String constructPromptWithCache(
@@ -162,9 +164,10 @@ public class PromptConstructionService {
                         String documentationTemplatePath,
                         String targetLanguage) {
                 try {
-                        // Gdy używamy cached content, nie musimy dołączać repository context do promptu
-                        // - jest już w cache jako system instruction. Tutaj budujemy tylko
-                        // instrukcje dla AI co ma wygenerować.
+                        // When using cached content, we don't need to include repository context in the
+                        // prompt
+                        // - it is already in the cache as system instruction. Here we build only
+                        // instructions for AI what to generate.
                         String documentationTemplate = loadDocumentationTemplate(documentationTemplatePath);
 
                         // Append language instruction
@@ -173,7 +176,7 @@ public class PromptConstructionService {
                                                 + " language.";
                         }
 
-                        // Utwórz uproszczony prompt - cached content zawiera już repository context
+                        // Create simplified prompt - cached content already contains repository context
                         PromptTemplate simplePromptTemplate = PromptTemplate.builder()
                                         .renderer(StTemplateRenderer.builder()
                                                         .startDelimiterToken(PLACEHOLDER_TOKEN)
@@ -182,8 +185,8 @@ public class PromptConstructionService {
                                         .resource(new ClassPathResource(promptTemplatePath))
                                         .build();
 
-                        // W prompt template używamy placeholdera, ale zamiast pełnego XML
-                        // podajemy tylko informację że kontekst jest w cache
+                        // In prompt template we use placeholder, but instead of full XML
+                        // we provide only information that context is in cache
                         String cacheInfo = String.format(
                                         "<cached_repository_context name=\"%s\">\n" +
                                                         "Repository context is available in cached content.\n" +
@@ -196,7 +199,7 @@ public class PromptConstructionService {
 
                 } catch (Exception e) {
                         throw new PromptConstructionException(
-                                        "Błąd podczas konstrukcji promptu z cached content: " + e.getMessage(), e);
+                                        "Error during prompt construction with cached content: " + e.getMessage(), e);
                 }
         }
 
@@ -210,10 +213,10 @@ public class PromptConstructionService {
                         return "unknown-project";
                 }
 
-                // Usuń .git na końcu jeśli istnieje
+                // Remove .git at the end if exists
                 String url = repoUrl.replaceAll("\\.git$", "");
 
-                // Wyciągnij ostatnią część ścieżki (nazwa repo)
+                // Extract last part of path (repo name)
                 int lastSlash = Math.max(url.lastIndexOf('/'), url.lastIndexOf(':'));
                 if (lastSlash >= 0 && lastSlash < url.length() - 1) {
                         return url.substring(lastSlash + 1);

@@ -76,11 +76,11 @@ public abstract class DocumentGenerationService {
     private String constructPrompt(String cacheName, String promptTemplatePath, String docTemplatePath,
             GitReport report, Path repoRoot, String targetLanguage) {
         if (cacheName != null) {
-            log.debug("Generowanie dokumentu z użyciem cache: {}", cacheName);
+            log.debug("Generating document using cache: {}", cacheName);
             return promptConstructionService.constructPromptWithCache(cacheName, promptTemplatePath, docTemplatePath,
                     targetLanguage);
         } else {
-            log.debug("Generowanie dokumentu bez cache (pełny prompt)");
+            log.debug("Generating document without cache (full prompt)");
             return promptConstructionService.constructPrompt(report, repoRoot, promptTemplatePath, docTemplatePath,
                     targetLanguage);
         }
@@ -115,9 +115,9 @@ public abstract class DocumentGenerationService {
         try {
             Path debugFile = outputDir.resolve(filename);
             Files.writeString(debugFile, content, StandardCharsets.UTF_8);
-            log.debug("Zapisano plik debugowania: {}", debugFile);
+            log.debug("Saved debug file: {}", debugFile);
         } catch (Exception e) {
-            log.warn("Nie udało się zapisać pliku debugowania {}: {}", filename, e.getMessage());
+            log.warn("Failed to save debug file {}: {}", filename, e.getMessage());
         }
     }
 
@@ -128,16 +128,16 @@ public abstract class DocumentGenerationService {
 
         String trimmed = responseText.trim();
 
-        // 0. Usuń blok <analysis>...</analysis> jeśli występuje na początku
+        // 0. Remove <analysis>...</analysis> block if starts with it
         if (trimmed.startsWith("<analysis>")) {
             int endTagIndex = trimmed.indexOf("</analysis>");
             if (endTagIndex != -1) {
-                log.debug("Usuwanie bloku <analysis> z odpowiedzi (długość: {})", endTagIndex + 11);
+                log.debug("Removing <analysis> block from response (length: {})", endTagIndex + 11);
                 trimmed = trimmed.substring(endTagIndex + "</analysis>".length()).trim();
             }
         }
 
-        // Sprawdź czy zaczyna się od ```markdown, ```json lub po prostu ```
+        // Check if starts with ```markdown, ```json or just ```
         String[] prefixes = { "```markdown", "```json", "```" };
         for (String prefix : prefixes) {
             if (trimmed.startsWith(prefix)) {
@@ -146,7 +146,7 @@ public abstract class DocumentGenerationService {
 
                 if (end > start) {
                     String content = trimmed.substring(start, end).trim();
-                    log.debug("Wyciągnięto treść z bloku kodu {}, długość: {} znaków", prefix, content.length());
+                    log.debug("Extracted content from code block {}, length: {} chars", prefix, content.length());
                     return content;
                 }
             }
