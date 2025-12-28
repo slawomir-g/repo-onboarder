@@ -1,43 +1,49 @@
 # Code Repository Refactoring Plan
 
-## Executive Summary
-[Brief overview of the repository's current state and key findings - 2-3 paragraphs]
+## Refactoring Strategy
 
-## Priority 1: Critical Issues
-[List critical issues that should be addressed immediately]
+[Brief overview of the main refactoring goals: e.g., improved modularity, decoupling services, introducing design patterns - 2-3 paragraphs]
 
-### 1. [Title]
-- **Category:** [Category name]
-- **Priority:** Critical
-- **Complexity:** [Simple/Moderate/Complex/Very Complex]
-- **Estimated Effort:** [e.g., 2 hours, 1 day, 1 week]
-- **Description:** [What needs to be done]
-- **Location:** [Specific files/modules affected]
-- **Impact:** [Why this matters]
-- **Dependencies:** [What else needs to be done first, if anything]
+## Priority 1: Critical Refactoring Opportunities
 
-[Continue for all critical issues...]
+[Focus on structural issues, tight coupling, Violations of SOLID principles, or God Classes]
 
-## Priority 2: High-Priority Improvements
-[Use same format as above]
+### 1. [Refactoring Name, e.g. Extract Service from Controller]
 
-## Priority 3: Medium-Priority Improvements
-[Use same format as above]
+- **Target:** [Class/Module Name]
+- **Code Smell:** [e.g. God Class, Long Method, Feature Envy]
+- **Proposed Refactoring Pattern:** [e.g. Extract Method, Move Method, Replace Conditional with Polymorphism]
+- **Benefit:** [e.g. Improved testability, separation of concerns]
+- **Complexity:** [Simple/Moderate/Complex]
+- **Estimated Effort:** [e.g. 4 hours]
 
-## Priority 4: Low-Priority Improvements
-[Use same format as above]
+[Continue for top critical items...]
 
-## Quick Wins
-[List simple, low-complexity items that can be done quickly for immediate benefit]
+## Priority 2: Design Pattern Opportunities
 
-- **[Item Title]** ([Estimated Effort]) - [Brief description]
-[Continue for all quick wins...]
+[Identify areas where standard design patterns could simplify code or improve flexibility]
 
-## Long-Term Recommendations
-[Larger architectural or strategic improvements that require significant planning]
+### 1. [Pattern Name, e.g. Strategy Pattern for Payment Processing]
 
-1. **[Recommendation Title]**
-   - [Description and rationale]
-   - [Estimated timeline and resources needed]
+- **Location:** [File/Package]
+- **Current problem:** [e.g. Massive switch statement]
+- **Recommendation:** Implement [Pattern Name] to handle...
+- **Impact:** [Why this is better]
 
-[Continue for all long-term recommendations...]
+[Continue for design pattern opportunities...]
+
+## Priority 3: Code Simplification & Cleanup
+
+[Focus on dead code, duplicated logic, or over-engineered solutions]
+
+- **[Improvement Title]**: [Description of what to simplify]
+  - _Target_: [File/Path]
+  - _Action_: [Remove/Consolidate/Simplify]
+
+## Long-Term Architectural Refactoring
+
+[Major structural changes like splitting monoliths, changing layers, or introducing new modules - distince from DDD]
+
+1. **[Architectural Change]**
+   - **Goal:** ...
+   - **Steps:** ...
