@@ -7,31 +7,32 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Service;
 
 @Service
-@Order(4)
-public class DddRefactoringGenerationService extends DocumentGenerationService {
+@Order(5)
+public class QualityAssessmentGenerationService extends DocumentGenerationService {
 
-    public DddRefactoringGenerationService(ChatModelClient chatModelClient,
+    public QualityAssessmentGenerationService(ChatModelClient chatModelClient,
             PromptConstructionService promptConstructionService) {
         super(chatModelClient, promptConstructionService);
     }
 
     @Override
     protected String getPromptTemplatePath() {
-        return "prompts/ddd-refactoring-prompt-template.md";
+        return "prompts/quality-assessment-prompt-template.md";
     }
 
     @Override
     protected String getDocTemplatePath() {
-        return "prompts/ddd-refactoring-template.md";
+        return "prompts/quality-assessment-documentation-template.md";
     }
 
     @Override
     protected String getOutputDebugFileName() {
-        return "generated_ddd_refactoring_file_debug.md";
+        return "generated_quality_assessment_debug.md";
     }
 
     @Override
     protected String getDocumentType() {
-        return "DDD Refactoring";
+        return "Quality Assessment";
     }
+
 }

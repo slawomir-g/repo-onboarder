@@ -54,6 +54,10 @@ public class DocumentationGenerationService {
         DocumentationResult result = new DocumentationResult();
 
         // 2. Run all generators
+        log.debug("Document generators order: {}", documentGenerators.stream()
+                .map(g -> g.getClass().getSimpleName())
+                .toList());
+
         for (DocumentGenerationService generator : documentGenerators) {
             generator.generate(result, report, repoRoot, debugOutputDir, repositoryContentCacheName, targetLanguage);
         }

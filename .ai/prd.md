@@ -119,11 +119,10 @@ The system communicates with Gemini 2.5 Pro via Spring AI framework:
 
 #### 3.3.3 Documentation Output
 
-The system generates the following document types:
-
 - **README**: Comprehensive project overview, including setup instructions, key information for developers, and **Architecture Overview**.
 - **Refactorings**: Identification of code smells and suggestions for improvements.
 - **DDD Refactoring**: Analysis of the domain model and suggestions for Domain-Driven Design improvements.
+- **Quality Assessment**: Code quality and architecture assessment with expert recommendations.
 - **AI Context**: Optimized file for AI coding assistants containing project structure, conventions, and key information.
 
 All documentation is returned as a JSON structure containing Markdown content.
@@ -204,7 +203,7 @@ As a developer, I want clear error messages for invalid URLs, cloning failures, 
 
 ### US-003: View Results
 
-As a developer, I want to view the generated documentation (README, Refactorings, DDD Refactoring, AI Context) in a user-friendly way.
+As a developer, I want to view the generated documentation (README, Refactorings, DDD Refactoring, AI Context, Quality Assessment) in a user-friendly way.
 
 ## 6. Implementation Status (Updated December 2025)
 
@@ -213,4 +212,4 @@ As a developer, I want to view the generated documentation (README, Refactorings
 - **Git Operations**: Implemented (Cloning, Analysis, Hotspots).
 - **AI Integration**: Implemented (`ChatModelClient` with Spring Retry).
 - **Service Layer**: Strategy pattern implemented with concrete generators.
-- **Documentation Types**: README (with Architecture), Refactorings, DDD Refactoring, AI Context.
+- **Documentation Types**: README (with Architecture), Refactorings, DDD Refactoring, AI Context, Quality Assessment.

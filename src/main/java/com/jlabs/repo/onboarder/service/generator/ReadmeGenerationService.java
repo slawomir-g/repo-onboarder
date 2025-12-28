@@ -1,12 +1,13 @@
 package com.jlabs.repo.onboarder.service.generator;
 
 import com.jlabs.repo.onboarder.infrastructure.springai.ChatModelClient;
-import com.jlabs.repo.onboarder.model.DocumentationResult;
 import com.jlabs.repo.onboarder.service.DocumentGenerationService;
 import com.jlabs.repo.onboarder.service.PromptConstructionService;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Service;
 
 @Service
+@Order(2)
 public class ReadmeGenerationService extends DocumentGenerationService {
 
     public ReadmeGenerationService(ChatModelClient chatModelClient,
