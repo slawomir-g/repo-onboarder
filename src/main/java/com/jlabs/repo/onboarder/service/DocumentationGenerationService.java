@@ -21,6 +21,7 @@ public class DocumentationGenerationService {
     private final PromptConstructionService promptConstructionService;
     private final RepositoryCacheService repositoryCacheService;
     private final AiProperties aiProperties;
+    private final AiJudgeService aiJudgeService;
     private final List<DocumentGenerationService> documentGenerators;
 
     /**
@@ -61,6 +62,8 @@ public class DocumentationGenerationService {
         for (DocumentGenerationService generator : documentGenerators) {
             generator.generate(result, report, repoRoot, debugOutputDir, repositoryContentCacheName, targetLanguage);
         }
+
+        aiJudgeService.validate(result, report, repoRoot, debugOutputDir, repositoryContentCacheName, targetLanguage);
 
         log.info("Documentation generated successfully");
         result.getDocuments().forEach((type, content) -> {

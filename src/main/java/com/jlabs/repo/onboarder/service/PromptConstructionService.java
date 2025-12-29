@@ -80,12 +80,26 @@ public class PromptConstructionService {
                 try {
 
                         String repositoryContextXml = prepareRepositoryContext(report, repoRoot);
-
                         String documentationTemplate = loadDocumentationTemplate(documentationTemplatePath);
 
+                        return constructPromptWithContent(repositoryContextXml, promptTemplatePath,
+                                        documentationTemplate, targetLanguage);
+                } catch (Exception e) {
+                        throw new PromptConstructionException(
+                                        "Error during prompt construction: " + e.getMessage(), e);
+                }
+        }
+
+        public String constructPromptWithContent(
+                        String repositoryContextXml,
+                        String promptTemplatePath,
+                        String documentationTemplateContent,
+                        String targetLanguage) {
+                try {
                         // Append language instruction
                         if (targetLanguage != null && !targetLanguage.isBlank()) {
-                                documentationTemplate += "\n\nIMPORTANT: Please write the response in " + targetLanguage
+                                documentationTemplateContent += "\n\nIMPORTANT: Please write the response in "
+                                                + targetLanguage
                                                 + " language.";
                         }
 
@@ -99,7 +113,7 @@ public class PromptConstructionService {
 
                         String finalPrompt = finalPromptTemplate.render(Map.of(
                                         "REPOSITORY_CONTEXT_PAYLOAD_PLACEHOLDER", repositoryContextXml,
-                                        DOCUMENTATION_TEMPLATE_PLACEHOLDER_KEY, documentationTemplate));
+                                        DOCUMENTATION_TEMPLATE_PLACEHOLDER_KEY, documentationTemplateContent));
 
                         return finalPrompt;
                 } catch (Exception e) {
@@ -164,15 +178,26 @@ public class PromptConstructionService {
                         String documentationTemplatePath,
                         String targetLanguage) {
                 try {
-                        // When using cached content, we don't need to include repository context in the
-                        // prompt
-                        // - it is already in the cache as system instruction. Here we build only
-                        // instructions for AI what to generate.
                         String documentationTemplate = loadDocumentationTemplate(documentationTemplatePath);
+                        return constructPromptWithCacheAndContent(cachedContentName, promptTemplatePath,
+                                        documentationTemplate, targetLanguage);
 
+                } catch (Exception e) {
+                        throw new PromptConstructionException(
+                                        "Error during prompt construction with cached content: " + e.getMessage(), e);
+                }
+        }
+
+        public String constructPromptWithCacheAndContent(
+                        String cachedContentName,
+                        String promptTemplatePath,
+                        String documentationTemplateContent,
+                        String targetLanguage) {
+                try {
                         // Append language instruction
                         if (targetLanguage != null && !targetLanguage.isBlank()) {
-                                documentationTemplate += "\n\nIMPORTANT: Please write the response in " + targetLanguage
+                                documentationTemplateContent += "\n\nIMPORTANT: Please write the response in "
+                                                + targetLanguage
                                                 + " language.";
                         }
 
@@ -195,7 +220,7 @@ public class PromptConstructionService {
 
                         return simplePromptTemplate.render(Map.of(
                                         "REPOSITORY_CONTEXT_PAYLOAD_PLACEHOLDER", cacheInfo,
-                                        DOCUMENTATION_TEMPLATE_PLACEHOLDER_KEY, documentationTemplate));
+                                        DOCUMENTATION_TEMPLATE_PLACEHOLDER_KEY, documentationTemplateContent));
 
                 } catch (Exception e) {
                         throw new PromptConstructionException(
