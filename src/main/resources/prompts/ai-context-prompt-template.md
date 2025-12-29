@@ -90,6 +90,7 @@ You must follow these rules strictly:
 - If a standard file (like README.md or .gitignore) is missing, you may note it's likely present as standard/boilerplate, but DO NOT invent its contents
 - If information is unavailable or cannot be determined from the data provided, state that explicitly rather than guessing
 - When documenting coding style and design patterns, cite specific examples from the source code when possible
+  $LANGUAGE_INSTRUCTION$
 
 ## Output Requirements
 

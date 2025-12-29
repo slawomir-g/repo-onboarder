@@ -56,6 +56,7 @@ $DOCUMENTATION_TEMPLATE$
 - Be specific with file names, function names, and line numbers where possible.
 - Focus on _domain_ logic, not just code cleanup.
 - If the domain is unclear, state assumptions.
+  $LANGUAGE_INSTRUCTION$
 - Ensure your entire refactoring plan after the analysis is in pure markdown format.
 
 Begin your analysis now.

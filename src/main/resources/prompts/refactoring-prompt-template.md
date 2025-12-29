@@ -99,5 +99,5 @@ $DOCUMENTATION_TEMPLATE$
 - Include estimated effort for each item to help with sprint planning
 - Group related improvements together when they should be tackled as a unit
 - Highlight any dependencies between refactoring tasks
-
+  $LANGUAGE_INSTRUCTION$
 Begin your analysis now.

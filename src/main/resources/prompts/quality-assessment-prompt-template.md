@@ -29,5 +29,6 @@ IMPORTANT:
 - Be specific. Quote chunks of code or cite specific filenames when making observations.
 - Do not be vague. Instead of "Improve error handling", say "The `catch (Exception e)` in `UserService.java` swallows exceptions without logging, hiding potential failures."
 - Prioritize high-impact issues.
+  $LANGUAGE_INSTRUCTION$
 
 {{instruction}}

@@ -17,7 +17,7 @@ public class RefactoringGenerationService extends DocumentGenerationService {
 
     @Override
     protected String getPromptTemplatePath() {
-        return "prompts/refactoring-documentation-template.md";
+        return "prompts/refactoring-prompt-template.md";
     }
 
     @Override

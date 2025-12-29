@@ -96,11 +96,10 @@ public class PromptConstructionService {
                         String documentationTemplateContent,
                         String targetLanguage) {
                 try {
-                        // Append language instruction
+                        String languageInstruction = "";
                         if (targetLanguage != null && !targetLanguage.isBlank()) {
-                                documentationTemplateContent += "\n\nIMPORTANT: Please write the response in "
-                                                + targetLanguage
-                                                + " language.";
+                                languageInstruction = "- IMPORTANT: Response MUST be in " + targetLanguage
+                                                + " language";
                         }
 
                         PromptTemplate finalPromptTemplate = PromptTemplate.builder()
@@ -113,7 +112,8 @@ public class PromptConstructionService {
 
                         String finalPrompt = finalPromptTemplate.render(Map.of(
                                         "REPOSITORY_CONTEXT_PAYLOAD_PLACEHOLDER", repositoryContextXml,
-                                        DOCUMENTATION_TEMPLATE_PLACEHOLDER_KEY, documentationTemplateContent));
+                                        DOCUMENTATION_TEMPLATE_PLACEHOLDER_KEY, documentationTemplateContent,
+                                        "LANGUAGE_INSTRUCTION", languageInstruction));
 
                         return finalPrompt;
                 } catch (Exception e) {
@@ -194,11 +194,9 @@ public class PromptConstructionService {
                         String documentationTemplateContent,
                         String targetLanguage) {
                 try {
-                        // Append language instruction
+                        String languageInstruction = "";
                         if (targetLanguage != null && !targetLanguage.isBlank()) {
-                                documentationTemplateContent += "\n\nIMPORTANT: Please write the response in "
-                                                + targetLanguage
-                                                + " language.";
+                                languageInstruction = "- Response MUST be in language: " + targetLanguage;
                         }
 
                         // Create simplified prompt - cached content already contains repository context
@@ -220,7 +218,8 @@ public class PromptConstructionService {
 
                         return simplePromptTemplate.render(Map.of(
                                         "REPOSITORY_CONTEXT_PAYLOAD_PLACEHOLDER", cacheInfo,
-                                        DOCUMENTATION_TEMPLATE_PLACEHOLDER_KEY, documentationTemplateContent));
+                                        DOCUMENTATION_TEMPLATE_PLACEHOLDER_KEY, documentationTemplateContent,
+                                        "LANGUAGE_INSTRUCTION", languageInstruction));
 
                 } catch (Exception e) {
                         throw new PromptConstructionException(

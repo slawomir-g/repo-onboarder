@@ -1,12 +1,15 @@
 package com.jlabs.repo.onboarder.service.generator;
 
 import com.jlabs.repo.onboarder.infrastructure.springai.ChatModelClient;
+import com.jlabs.repo.onboarder.model.DocumentationResult;
 import com.jlabs.repo.onboarder.model.GitReport;
 import com.jlabs.repo.onboarder.service.DocumentGenerationService;
 import com.jlabs.repo.onboarder.service.DocumentationPostProcessingService;
 import com.jlabs.repo.onboarder.service.PromptConstructionService;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Service;
+
+import java.nio.file.Path;
 
 @Service
 @Order(1)
@@ -39,6 +42,14 @@ public class AiContextGenerationService extends DocumentGenerationService {
     @Override
     protected String getDocumentType() {
         return "AI Context";
+    }
+
+    @Override
+    public void generate(DocumentationResult result, GitReport report,
+                         Path repoRoot, Path debugOutputDir,
+                         String cacheName, String targetLanguage) {
+        // Enforce English for AI Context based on requirements
+        super.generate(result, report, repoRoot, debugOutputDir, cacheName, "English");
     }
 
     @Override

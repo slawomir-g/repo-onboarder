@@ -12,6 +12,7 @@ You must follow these rules strictly:
 - DO NOT fabricate or assume the existence of files not present in `source_code_corpus`
 - If information is unavailable or cannot be determined from the data provided, state that explicitly rather than guessing
 - Keep the README concise, practical, and developer-focused
+  $LANGUAGE_INSTRUCTION$
 
 ## Output Requirements
 
